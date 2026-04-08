@@ -113,7 +113,7 @@ function App() {
             id="username"
             name="username"
             type="text"
-            placeholder="Nhập mã sinh viên hoặc email"
+            placeholder="Nhập tên tài khoản"
             value={formData.username}
             onChange={handleChange}
             autoComplete="username"
