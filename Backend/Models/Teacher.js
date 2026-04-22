@@ -14,6 +14,7 @@ const teacherSchema = new mongoose.Schema(
     gender: { type: String, trim: true },
     nationalIdNumber: { type: String, unique: true, sparse: true, trim: true },
     phone: { type: String, trim: true },
+    address: { type: String, trim: true },
     department: { type: String, trim: true },
   },
   { versionKey: false }

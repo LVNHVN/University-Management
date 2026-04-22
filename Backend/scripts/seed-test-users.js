@@ -1,9 +1,6 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 require('dotenv').config();
 const User = require('../Models/User');
-
-const SALT_ROUNDS = 10;
 const TEST_USERS = [
   {
     username: 'AdminTest',
@@ -35,15 +32,14 @@ async function seedTestUsers() {
   await mongoose.connect(uri);
 
   for (const user of TEST_USERS) {
-    const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
-    const { username, role, status } = user;
+    const { username, password, role, status } = user;
 
     await User.findOneAndUpdate(
       { username },
       {
         $set: {
           username,
-          password: hashedPassword,
+          password,
           role,
           status,
         },
