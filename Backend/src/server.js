@@ -1,0 +1,14 @@
+const app = require('./app');
+const connectDB = require('./config/db');
+const { PORT } = require('./config/env');
+
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server đang chạy ở port: ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('Lỗi kết nối MongoDB:', err);
+    process.exit(1);
+  });
