@@ -3,7 +3,12 @@ function StudentManagementView({
   onStudentSearchKeywordChange,
   onStudentSearchSubmit,
   onOpenCreateStudentModal,
+  isStudentImportModalOpen,
   isStudentsImporting,
+  studentImportFileName,
+  onOpenStudentImportModal,
+  onCloseStudentImportModal,
+  onStudentImportFileChange,
   onImportStudentsCsv,
   studentsError,
   isStudentsLoading,
@@ -46,8 +51,13 @@ function StudentManagementView({
 
   const handleImportInputChange = (event) => {
     const selectedFile = event.target.files?.[0]
-    onImportStudentsCsv(selectedFile)
+    onStudentImportFileChange(selectedFile)
     event.target.value = ''
+  }
+
+  const handleReopenImportModal = () => {
+    onCloseStudentImportPreview()
+    onOpenStudentImportModal()
   }
 
   return (
@@ -73,10 +83,9 @@ function StudentManagementView({
             Thêm sinh viên mới
           </button>
 
-          <label className="import-student-button">
-            <input type="file" accept=".csv,text/csv" onChange={handleImportInputChange} />
-            {isStudentsImporting ? 'Đang import...' : 'Import file sinh viên'}
-          </label>
+          <button type="button" className="import-student-button" onClick={onOpenStudentImportModal}>
+            Import file sinh viên
+          </button>
         </div>
       </div>
 
@@ -220,7 +229,7 @@ function StudentManagementView({
               </div>
 
               <label>
-                Căn cước công dân
+                Số căn cước công dân
                 <input
                   type="text"
                   name="nationalIdNumber"
@@ -260,7 +269,7 @@ function StudentManagementView({
               </label>
 
               <label>
-                Ngành
+                Ngành học
                 <input
                   type="text"
                   name="major"
@@ -319,6 +328,56 @@ function StudentManagementView({
         </div>
       )}
 
+      {isStudentImportModalOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: '720px' }}>
+            <div className="modal-header">
+              <h3>Chuẩn bị import sinh viên</h3>
+              <button type="button" className="modal-close" onClick={onCloseStudentImportModal}>×</button>
+            </div>
+
+            <div className="import-helper-block">
+              <p className="student-form-notice import-helper-note">
+                Dùng đúng header chuẩn của hệ thống. Chấp nhận file .csv, .xlsx và .xls.
+                <br />
+                Lưu ý: xóa dòng dữ liệu mẫu trước khi import vào hệ thống.
+              </p>
+
+              <div className="import-template-actions">
+                <a className="template-download-button" href="/templates/students-import-template.csv" download>
+                  Tải file mẫu CSV
+                </a>
+                <a className="template-download-button" href="/templates/students-import-template.xlsx" download>
+                  Tải file mẫu Excel
+                </a>
+              </div>
+
+              <label className="import-file-picker">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                  onChange={handleImportInputChange}
+                />
+                <span>{studentImportFileName ? 'Chọn file khác' : 'Chọn file import'}</span>
+              </label>
+
+              <p className="import-file-name">{studentImportFileName || 'Chưa chọn file nào.'}</p>
+
+              {studentsError && <p className="dashboard-error import-inline-error">{studentsError}</p>}
+            </div>
+
+            <div className="modal-actions full-width">
+              <button type="button" disabled={isStudentsImporting} onClick={onImportStudentsCsv}>
+                {isStudentsImporting ? 'Đang kiểm tra...' : 'Kiểm tra dữ liệu'}
+              </button>
+              <button type="button" className="ghost" onClick={onCloseStudentImportModal}>
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isStudentImportPreviewOpen && studentImportPreview && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
@@ -327,9 +386,20 @@ function StudentManagementView({
               <button type="button" className="modal-close" onClick={onCloseStudentImportPreview}>×</button>
             </div>
 
-            <p className="student-form-notice">
-              {studentImportPreview.summary?.validRows || 0}/{studentImportPreview.summary?.totalRows || 0} dòng hợp lệ.
-            </p>
+            <div className="import-summary-grid">
+              <div className="import-summary-card">
+                <strong>{studentImportPreview.summary?.totalRows || 0}</strong>
+                <span>Tổng số dòng</span>
+              </div>
+              <div className="import-summary-card success">
+                <strong>{studentImportPreview.summary?.validRows || 0}</strong>
+                <span>Dòng hợp lệ</span>
+              </div>
+              <div className="import-summary-card error">
+                <strong>{Array.isArray(studentImportPreview.errors) ? studentImportPreview.errors.length : 0}</strong>
+                <span>Dòng lỗi</span>
+              </div>
+            </div>
 
             {Array.isArray(studentImportPreview.errors) && studentImportPreview.errors.length > 0 ? (
               <div className="student-table-wrap">
@@ -361,6 +431,9 @@ function StudentManagementView({
                 onClick={onCommitStudentsImport}
               >
                 {isStudentImportCommitting ? 'Đang lưu...' : 'Lưu các dòng hợp lệ'}
+              </button>
+              <button type="button" className="ghost" onClick={handleReopenImportModal}>
+                Chọn file khác
               </button>
               <button type="button" className="ghost" onClick={onCloseStudentImportPreview}>
                 Đóng

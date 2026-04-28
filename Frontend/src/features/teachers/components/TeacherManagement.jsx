@@ -18,11 +18,15 @@ function TeacherManagement({ onTeacherChanged }) {
     teacherAccount,
     teacherAccountNotice,
     isTeacherAccountSaving,
+    isTeacherImportModalOpen,
     isTeachersImporting,
+    teacherImportFileName,
     isTeacherImportPreviewOpen,
     teacherImportPreview,
     isTeacherImportCommitting,
     teacherImportSuccess,
+    openTeacherImportModal,
+    closeTeacherImportModal,
     handleTeacherSearchSubmit,
     openCreateTeacherModal,
     openTeacherDetailModal,
@@ -36,6 +40,7 @@ function TeacherManagement({ onTeacherChanged }) {
     closeTeacherAccountModal,
     handleToggleTeacherAccountStatus,
     handleResetTeacherAccountPassword,
+    handleTeacherImportFileChange,
     handleImportTeachersCsv,
     handleCommitTeachersImport,
     handleCloseTeacherImportPreview,
@@ -50,7 +55,12 @@ function TeacherManagement({ onTeacherChanged }) {
       onTeacherSearchKeywordChange={setTeacherSearchKeyword}
       onTeacherSearchSubmit={handleTeacherSearchSubmit}
       onOpenCreateTeacherModal={openCreateTeacherModal}
+      isTeacherImportModalOpen={isTeacherImportModalOpen}
       isTeachersImporting={isTeachersImporting}
+      teacherImportFileName={teacherImportFileName}
+      onOpenTeacherImportModal={openTeacherImportModal}
+      onCloseTeacherImportModal={closeTeacherImportModal}
+      onTeacherImportFileChange={handleTeacherImportFileChange}
       onImportTeachersCsv={handleImportTeachersCsv}
       teachersError={teachersError}
       isTeachersLoading={isTeachersLoading}

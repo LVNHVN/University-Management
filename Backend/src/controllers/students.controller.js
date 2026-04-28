@@ -1,6 +1,7 @@
 const multer = require('multer');
 const { normalizeStudentPayload, validateStudentPayload } = require('../validators/students.validator');
 const { getDuplicateKeyMessage } = require('../utils/duplicateKey');
+const { isSupportedImportFile } = require('../utils/importSpreadsheet');
 const {
   listStudents,
   getStudentById,
@@ -107,16 +108,17 @@ const handleImportStudentsFromCsv = [
       return res.status(400).json({ success: false, message: 'Vui lòng tải lên file CSV.' });
     }
 
-    const fileName = String(req.file.originalname || '').toLowerCase();
-    const mimeType = String(req.file.mimetype || '').toLowerCase();
-    const isCsvMime = mimeType.includes('csv') || mimeType.includes('excel') || mimeType === 'text/plain';
+    const fileMeta = {
+      fileName: String(req.file.originalname || ''),
+      mimeType: String(req.file.mimetype || ''),
+    };
 
-    if (!fileName.endsWith('.csv') && !isCsvMime) {
-      return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv ở chức năng này.' });
+    if (!isSupportedImportFile(fileMeta)) {
+      return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv, .xlsx hoặc .xls ở chức năng này.' });
     }
 
     try {
-      const result = await importStudentsFromCsv(req.file.buffer);
+      const result = await importStudentsFromCsv(req.file.buffer, fileMeta);
 
       return res.json({
         success: true,
@@ -140,16 +142,17 @@ const handlePreviewStudentsImport = [
       return res.status(400).json({ success: false, message: 'Vui lòng tải lên file CSV.' });
     }
 
-    const fileName = String(req.file.originalname || '').toLowerCase();
-    const mimeType = String(req.file.mimetype || '').toLowerCase();
-    const isCsvMime = mimeType.includes('csv') || mimeType.includes('excel') || mimeType === 'text/plain';
+    const fileMeta = {
+      fileName: String(req.file.originalname || ''),
+      mimeType: String(req.file.mimetype || ''),
+    };
 
-    if (!fileName.endsWith('.csv') && !isCsvMime) {
-      return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv ở chức năng này.' });
+    if (!isSupportedImportFile(fileMeta)) {
+      return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv, .xlsx hoặc .xls ở chức năng này.' });
     }
 
     try {
-      const result = await validateAndParseStudentsCsv(req.file.buffer);
+      const result = await validateAndParseStudentsCsv(req.file.buffer, fileMeta);
 
       return res.json({
         success: true,

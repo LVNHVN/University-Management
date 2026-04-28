@@ -15,6 +15,8 @@ import {
 import { validateTeacherForm } from '../validators/teacherValidator'
 
 export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
+  const [isTeacherImportModalOpen, setIsTeacherImportModalOpen] = useState(false)
+  const [teacherImportFile, setTeacherImportFile] = useState(null)
   const [teacherSearchKeyword, setTeacherSearchKeyword] = useState('')
   const [teachers, setTeachers] = useState([])
   const [isTeachersLoading, setIsTeachersLoading] = useState(false)
@@ -61,6 +63,21 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
   useEffect(() => {
     loadTeachers()
   }, [loadTeachers])
+
+  const openTeacherImportModal = useCallback(() => {
+    setTeachersError('')
+    setTeacherImportFile(null)
+    setIsTeacherImportModalOpen(true)
+  }, [])
+
+  const closeTeacherImportModal = useCallback(() => {
+    if (isTeachersImporting) {
+      return
+    }
+
+    setIsTeacherImportModalOpen(false)
+    setTeacherImportFile(null)
+  }, [isTeachersImporting])
 
   const handleTeacherSearchSubmit = useCallback((event) => {
     event.preventDefault()
@@ -304,16 +321,35 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     }
   }, [loadTeachers, onTeacherChanged, teacherSearchKeyword])
 
-  const handleImportTeachersCsv = useCallback(async (file) => {
+  const handleTeacherImportFileChange = useCallback((file) => {
     if (!file) {
       return
     }
 
     const normalizedFileName = String(file.name || '').toLowerCase()
-    const isCsvType = file.type.includes('csv') || file.type === 'text/plain' || normalizedFileName.endsWith('.csv')
+    const normalizedMimeType = String(file.type || '').toLowerCase()
+    const isSupportedType =
+      normalizedFileName.endsWith('.csv') ||
+      normalizedFileName.endsWith('.xlsx') ||
+      normalizedFileName.endsWith('.xls') ||
+      normalizedMimeType.includes('csv') ||
+      normalizedMimeType === 'text/plain' ||
+      normalizedMimeType.includes('excel') ||
+      normalizedMimeType.includes('spreadsheetml')
 
-    if (!isCsvType) {
-      setTeachersError('Chỉ hỗ trợ import file .csv.')
+    if (!isSupportedType) {
+      setTeachersError('Chỉ hỗ trợ import file .csv, .xlsx hoặc .xls.')
+      setTeacherImportFile(null)
+      return
+    }
+
+    setTeachersError('')
+    setTeacherImportFile(file)
+  }, [])
+
+  const handleImportTeachersCsv = useCallback(async () => {
+    if (!teacherImportFile) {
+      setTeachersError('Vui lòng chọn file import giảng viên.')
       return
     }
 
@@ -321,8 +357,9 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     setTeachersError('')
 
     try {
-      const payload = await previewTeachersImport(file)
+      const payload = await previewTeachersImport(teacherImportFile)
       setTeacherImportPreview(payload)
+      setIsTeacherImportModalOpen(false)
       setIsTeacherImportPreviewOpen(true)
     } catch (error) {
       const backendMessage = error.response?.data?.message
@@ -330,7 +367,7 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     } finally {
       setIsTeachersImporting(false)
     }
-  }, [])
+  }, [teacherImportFile])
 
   const handleCommitTeachersImport = useCallback(async () => {
     if (!teacherImportPreview?.validRows?.length) {
@@ -367,9 +404,12 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
 
   const handleCloseTeacherImportSuccess = useCallback(() => {
     setTeacherImportSuccess(null)
+    setTeacherImportFile(null)
   }, [])
 
   return {
+    isTeacherImportModalOpen,
+    teacherImportFileName: teacherImportFile?.name || '',
     teacherSearchKeyword,
     setTeacherSearchKeyword,
     teachers,
@@ -390,6 +430,8 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     teacherImportPreview,
     isTeacherImportCommitting,
     teacherImportSuccess,
+    openTeacherImportModal,
+    closeTeacherImportModal,
     handleTeacherSearchSubmit,
     openCreateTeacherModal,
     openTeacherDetailModal,
@@ -403,6 +445,7 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     closeTeacherAccountModal,
     handleToggleTeacherAccountStatus,
     handleResetTeacherAccountPassword,
+    handleTeacherImportFileChange,
     handleImportTeachersCsv,
     handleCommitTeachersImport,
     handleCloseTeacherImportPreview,

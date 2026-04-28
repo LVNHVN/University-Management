@@ -18,11 +18,15 @@ function StudentManagement({ onStudentChanged }) {
     studentAccount,
     studentAccountNotice,
     isStudentAccountSaving,
+    isStudentImportModalOpen,
     isStudentsImporting,
+    studentImportFileName,
     isStudentImportPreviewOpen,
     studentImportPreview,
     isStudentImportCommitting,
     studentImportSuccess,
+    openStudentImportModal,
+    closeStudentImportModal,
     handleStudentSearchSubmit,
     openCreateStudentModal,
     openStudentDetailModal,
@@ -36,6 +40,7 @@ function StudentManagement({ onStudentChanged }) {
     closeStudentAccountModal,
     handleToggleStudentAccountStatus,
     handleResetStudentAccountPassword,
+    handleStudentImportFileChange,
     handleImportStudentsCsv,
     handleCommitStudentsImport,
     handleCloseStudentImportPreview,
@@ -50,7 +55,12 @@ function StudentManagement({ onStudentChanged }) {
       onStudentSearchKeywordChange={setStudentSearchKeyword}
       onStudentSearchSubmit={handleStudentSearchSubmit}
       onOpenCreateStudentModal={openCreateStudentModal}
+      isStudentImportModalOpen={isStudentImportModalOpen}
       isStudentsImporting={isStudentsImporting}
+      studentImportFileName={studentImportFileName}
+      onOpenStudentImportModal={openStudentImportModal}
+      onCloseStudentImportModal={closeStudentImportModal}
+      onStudentImportFileChange={handleStudentImportFileChange}
       onImportStudentsCsv={handleImportStudentsCsv}
       studentsError={studentsError}
       isStudentsLoading={isStudentsLoading}

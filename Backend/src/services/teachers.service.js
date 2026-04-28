@@ -1,10 +1,10 @@
-const { parse } = require('csv-parse/sync');
 const Teacher = require('../../Models/Teacher');
 const User = require('../../Models/User');
 const Student = require('../../Models/Student');
 const { buildTeacherUsername } = require('../utils/username');
 const { checkDuplicateIdentityAcrossStudentsAndTeachers } = require('../utils/duplicateIdentity');
 const { getDuplicateKeyMessage } = require('../utils/duplicateKey');
+const { parseImportRecords } = require('../utils/importSpreadsheet');
 const { DEFAULT_ACCOUNT_PASSWORD } = require('../config/env');
 const { normalizeTeacherPayload, validateTeacherPayload } = require('../validators/teachers.validator');
 
@@ -18,6 +18,39 @@ const TEACHER_IMPORT_COLUMNS = [
   'address',
   'department',
 ];
+
+const TEACHER_IMPORT_HEADERS_VI = [
+  'Mã số giảng viên',
+  'Họ và tên',
+  'Ngày sinh',
+  'Giới tính',
+  'Số căn cước công dân',
+  'Số điện thoại',
+  'Địa chỉ',
+  'Khoa/viện công tác',
+];
+
+const normalizeHeaderText = (value) => String(value || '').trim().toLowerCase();
+
+const hasAllExpectedHeaders = (record = {}, expectedHeaders) => {
+  const availableHeaders = new Set(Object.keys(record).map(normalizeHeaderText));
+
+  return expectedHeaders.every((header) => availableHeaders.has(normalizeHeaderText(header)));
+};
+
+const mapRecordByHeaders = (record = {}, expectedColumns, expectedHeaders) => {
+  const entries = Object.entries(record || {});
+
+  const valueByNormalizedHeader = new Map(
+    entries.map(([key, value]) => [normalizeHeaderText(key), value])
+  );
+
+  return expectedColumns.reduce((acc, column, index) => {
+    acc[column] = valueByNormalizedHeader.get(normalizeHeaderText(expectedHeaders[index])) ?? '';
+
+    return acc;
+  }, {});
+};
 
 const listTeachers = async (keyword) => {
   const filter = keyword
@@ -166,48 +199,29 @@ const deleteTeacher = async (id) => {
   await User.findByIdAndDelete(teacher.userId);
 };
 
-const normalizeHeader = (value) => String(value || '').trim();
-
-const parseTeachersCsvBuffer = (fileBuffer) => {
-  if (!fileBuffer || !Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
-    const error = new Error('File CSV rỗng hoặc không hợp lệ.');
-    error.status = 400;
-    throw error;
-  }
-
-  let records;
-  try {
-    records = parse(fileBuffer, {
-      columns: (headers) => headers.map(normalizeHeader),
-      skip_empty_lines: true,
-      trim: true,
-      bom: true,
-    });
-  } catch (_error) {
-    const error = new Error('Không đọc được file CSV. Vui lòng kiểm tra định dạng file.');
-    error.status = 400;
-    throw error;
-  }
+const parseTeachersCsvBuffer = (fileBuffer, fileMeta = {}) => {
+  const records = parseImportRecords(fileBuffer, fileMeta);
 
   if (!records.length) {
-    const error = new Error('File CSV không có dữ liệu.');
+    const error = new Error('File import không có dữ liệu.');
     error.status = 400;
     throw error;
   }
 
-  const firstRowColumns = Object.keys(records[0] || {});
-  const missingColumns = TEACHER_IMPORT_COLUMNS.filter((column) => !firstRowColumns.includes(column));
-  if (missingColumns.length) {
-    const error = new Error(`Thiếu cột bắt buộc: ${missingColumns.join(', ')}.`);
+  const firstRow = records[0] || {};
+  const headersMatchByName = hasAllExpectedHeaders(firstRow, TEACHER_IMPORT_HEADERS_VI);
+
+  if (!headersMatchByName) {
+    const error = new Error(`File thiếu cột bắt buộc. Header chuẩn: ${TEACHER_IMPORT_HEADERS_VI.join(', ')}.`);
     error.status = 400;
     throw error;
   }
 
-  return records;
+  return records.map((record) => mapRecordByHeaders(record, TEACHER_IMPORT_COLUMNS, TEACHER_IMPORT_HEADERS_VI));
 };
 
-const validateAndParseTeachersCsv = async (fileBuffer) => {
-  const records = parseTeachersCsvBuffer(fileBuffer);
+const validateAndParseTeachersCsv = async (fileBuffer, fileMeta = {}) => {
+  const records = parseTeachersCsvBuffer(fileBuffer, fileMeta);
 
   const errors = [];
   const validRows = [];
@@ -359,8 +373,8 @@ const batchCreateTeachersFromValidated = async (validRows) => {
   return { createdRows, errors };
 };
 
-const importTeachersFromCsv = async (fileBuffer) => {
-  const { totalRows, validRows, errors: previewErrors } = await validateAndParseTeachersCsv(fileBuffer);
+const importTeachersFromCsv = async (fileBuffer, fileMeta = {}) => {
+  const { totalRows, validRows, errors: previewErrors } = await validateAndParseTeachersCsv(fileBuffer, fileMeta);
   const { createdRows, errors: commitErrors } = await batchCreateTeachersFromValidated(validRows);
   const errors = [...previewErrors, ...commitErrors];
 

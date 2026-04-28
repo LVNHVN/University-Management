@@ -15,6 +15,8 @@ import {
 import { validateStudentForm } from '../validators/studentValidator'
 
 export const useStudentManagement = ({ onStudentChanged } = {}) => {
+  const [isStudentImportModalOpen, setIsStudentImportModalOpen] = useState(false)
+  const [studentImportFile, setStudentImportFile] = useState(null)
   const [studentSearchKeyword, setStudentSearchKeyword] = useState('')
   const [students, setStudents] = useState([])
   const [isStudentsLoading, setIsStudentsLoading] = useState(false)
@@ -61,6 +63,21 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
   useEffect(() => {
     loadStudents()
   }, [loadStudents])
+
+  const openStudentImportModal = useCallback(() => {
+    setStudentsError('')
+    setStudentImportFile(null)
+    setIsStudentImportModalOpen(true)
+  }, [])
+
+  const closeStudentImportModal = useCallback(() => {
+    if (isStudentsImporting) {
+      return
+    }
+
+    setIsStudentImportModalOpen(false)
+    setStudentImportFile(null)
+  }, [isStudentsImporting])
 
   const resetStudentManagement = useCallback(() => {
     setStudentSearchKeyword('')
@@ -319,16 +336,35 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     }
   }, [loadStudents, onStudentChanged, studentSearchKeyword])
 
-  const handleImportStudentsCsv = useCallback(async (file) => {
+  const handleStudentImportFileChange = useCallback((file) => {
     if (!file) {
       return
     }
 
     const normalizedFileName = String(file.name || '').toLowerCase()
-    const isCsvType = file.type.includes('csv') || file.type === 'text/plain' || normalizedFileName.endsWith('.csv')
+    const normalizedMimeType = String(file.type || '').toLowerCase()
+    const isSupportedType =
+      normalizedFileName.endsWith('.csv') ||
+      normalizedFileName.endsWith('.xlsx') ||
+      normalizedFileName.endsWith('.xls') ||
+      normalizedMimeType.includes('csv') ||
+      normalizedMimeType === 'text/plain' ||
+      normalizedMimeType.includes('excel') ||
+      normalizedMimeType.includes('spreadsheetml')
 
-    if (!isCsvType) {
-      setStudentsError('Chỉ hỗ trợ import file .csv.')
+    if (!isSupportedType) {
+      setStudentsError('Chỉ hỗ trợ import file .csv, .xlsx hoặc .xls.')
+      setStudentImportFile(null)
+      return
+    }
+
+    setStudentsError('')
+    setStudentImportFile(file)
+  }, [])
+
+  const handleImportStudentsCsv = useCallback(async () => {
+    if (!studentImportFile) {
+      setStudentsError('Vui lòng chọn file import sinh viên.')
       return
     }
 
@@ -336,8 +372,9 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     setStudentsError('')
 
     try {
-      const payload = await previewStudentsImport(file)
+      const payload = await previewStudentsImport(studentImportFile)
       setStudentImportPreview(payload)
+      setIsStudentImportModalOpen(false)
       setIsStudentImportPreviewOpen(true)
     } catch (error) {
       const backendMessage = error.response?.data?.message
@@ -345,7 +382,7 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     } finally {
       setIsStudentsImporting(false)
     }
-  }, [])
+  }, [studentImportFile])
 
   const handleCommitStudentsImport = useCallback(async () => {
     if (!studentImportPreview?.validRows?.length) {
@@ -381,9 +418,12 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
 
   const handleCloseStudentImportSuccess = useCallback(() => {
     setStudentImportSuccess(null)
+    setStudentImportFile(null)
   }, [])
 
   return {
+    isStudentImportModalOpen,
+    studentImportFileName: studentImportFile?.name || '',
     studentSearchKeyword,
     setStudentSearchKeyword,
     students,
@@ -404,6 +444,8 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     studentImportPreview,
     isStudentImportCommitting,
     studentImportSuccess,
+    openStudentImportModal,
+    closeStudentImportModal,
     loadStudents,
     resetStudentManagement,
     handleStudentSearchSubmit,
@@ -419,6 +461,7 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     closeStudentAccountModal,
     handleToggleStudentAccountStatus,
     handleResetStudentAccountPassword,
+    handleStudentImportFileChange,
     handleImportStudentsCsv,
     handleCommitStudentsImport,
     handleCloseStudentImportPreview,
