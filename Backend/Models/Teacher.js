@@ -13,7 +13,7 @@ const teacherSchema = new mongoose.Schema(
     dob: { type: Date },
     gender: { type: String, trim: true },
     nationalIdNumber: { type: String, unique: true, sparse: true, trim: true },
-    phone: { type: String, trim: true },
+    phone: { type: String, unique: true, sparse: true, trim: true },
     address: { type: String, trim: true },
     department: { type: String, trim: true },
   },

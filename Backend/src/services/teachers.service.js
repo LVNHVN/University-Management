@@ -1,8 +1,23 @@
+const { parse } = require('csv-parse/sync');
 const Teacher = require('../../Models/Teacher');
 const User = require('../../Models/User');
+const Student = require('../../Models/Student');
 const { buildTeacherUsername } = require('../utils/username');
 const { checkDuplicateIdentityAcrossStudentsAndTeachers } = require('../utils/duplicateIdentity');
+const { getDuplicateKeyMessage } = require('../utils/duplicateKey');
 const { DEFAULT_ACCOUNT_PASSWORD } = require('../config/env');
+const { normalizeTeacherPayload, validateTeacherPayload } = require('../validators/teachers.validator');
+
+const TEACHER_IMPORT_COLUMNS = [
+  'teacherCode',
+  'fullName',
+  'dob',
+  'gender',
+  'nationalIdNumber',
+  'phone',
+  'address',
+  'department',
+];
 
 const listTeachers = async (keyword) => {
   const filter = keyword
@@ -151,4 +166,222 @@ const deleteTeacher = async (id) => {
   await User.findByIdAndDelete(teacher.userId);
 };
 
-module.exports = { listTeachers, getTeacherById, createTeacher, updateTeacher, deleteTeacher };
+const normalizeHeader = (value) => String(value || '').trim();
+
+const parseTeachersCsvBuffer = (fileBuffer) => {
+  if (!fileBuffer || !Buffer.isBuffer(fileBuffer) || fileBuffer.length === 0) {
+    const error = new Error('File CSV rỗng hoặc không hợp lệ.');
+    error.status = 400;
+    throw error;
+  }
+
+  let records;
+  try {
+    records = parse(fileBuffer, {
+      columns: (headers) => headers.map(normalizeHeader),
+      skip_empty_lines: true,
+      trim: true,
+      bom: true,
+    });
+  } catch (_error) {
+    const error = new Error('Không đọc được file CSV. Vui lòng kiểm tra định dạng file.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (!records.length) {
+    const error = new Error('File CSV không có dữ liệu.');
+    error.status = 400;
+    throw error;
+  }
+
+  const firstRowColumns = Object.keys(records[0] || {});
+  const missingColumns = TEACHER_IMPORT_COLUMNS.filter((column) => !firstRowColumns.includes(column));
+  if (missingColumns.length) {
+    const error = new Error(`Thiếu cột bắt buộc: ${missingColumns.join(', ')}.`);
+    error.status = 400;
+    throw error;
+  }
+
+  return records;
+};
+
+const validateAndParseTeachersCsv = async (fileBuffer) => {
+  const records = parseTeachersCsvBuffer(fileBuffer);
+
+  const errors = [];
+  const validRows = [];
+  const seenTeacherCodes = new Map();
+  const seenNationalIds = new Map();
+  const seenPhones = new Map();
+
+  records.forEach((row, index) => {
+    const rowNumber = index + 2;
+    const payload = normalizeTeacherPayload(row);
+    const validationMessage = validateTeacherPayload(payload);
+
+    if (validationMessage) {
+      errors.push({ rowNumber, message: validationMessage });
+      return;
+    }
+
+    if (seenTeacherCodes.has(payload.teacherCode)) {
+      errors.push({ rowNumber, message: `MSGV trùng với dòng ${seenTeacherCodes.get(payload.teacherCode)}.` });
+      return;
+    }
+
+    if (seenNationalIds.has(payload.nationalIdNumber)) {
+      errors.push({ rowNumber, message: `CCCD trùng với dòng ${seenNationalIds.get(payload.nationalIdNumber)}.` });
+      return;
+    }
+
+    if (seenPhones.has(payload.phone)) {
+      errors.push({ rowNumber, message: `Số điện thoại trùng với dòng ${seenPhones.get(payload.phone)}.` });
+      return;
+    }
+
+    seenTeacherCodes.set(payload.teacherCode, rowNumber);
+    seenNationalIds.set(payload.nationalIdNumber, rowNumber);
+    seenPhones.set(payload.phone, rowNumber);
+    validRows.push({ rowNumber, ...payload });
+  });
+
+  if (validRows.length > 0) {
+    const teacherCodes = [...new Set(validRows.map((row) => row.teacherCode))];
+    const nationalIds = [...new Set(validRows.map((row) => row.nationalIdNumber))];
+    const phones = [...new Set(validRows.map((row) => row.phone))];
+    const usernames = teacherCodes.map((teacherCode) => buildTeacherUsername(teacherCode));
+
+    const [
+      existingTeachersByCode,
+      existingTeachersByNationalId,
+      existingTeachersByPhone,
+      existingStudentsByNationalId,
+      existingStudentsByPhone,
+      existingUsersByUsername,
+    ] = await Promise.all([
+      Teacher.find({ teacherCode: { $in: teacherCodes } }).select('teacherCode').lean(),
+      Teacher.find({ nationalIdNumber: { $in: nationalIds } }).select('nationalIdNumber').lean(),
+      Teacher.find({ phone: { $in: phones } }).select('phone').lean(),
+      Student.find({ nationalIdNumber: { $in: nationalIds } }).select('nationalIdNumber').lean(),
+      Student.find({ phone: { $in: phones } }).select('phone').lean(),
+      User.find({ username: { $in: usernames } }).select('username').lean(),
+    ]);
+
+    const existingTeacherCodeSet = new Set(existingTeachersByCode.map((item) => item.teacherCode));
+    const existingTeacherNationalIdSet = new Set(existingTeachersByNationalId.map((item) => item.nationalIdNumber));
+    const existingTeacherPhoneSet = new Set(existingTeachersByPhone.map((item) => item.phone));
+    const existingStudentNationalIdSet = new Set(existingStudentsByNationalId.map((item) => item.nationalIdNumber));
+    const existingStudentPhoneSet = new Set(existingStudentsByPhone.map((item) => item.phone));
+    const existingUsernameSet = new Set(existingUsersByUsername.map((item) => item.username));
+
+    const dbValidatedRows = [];
+
+    validRows.forEach((row) => {
+      if (existingTeacherCodeSet.has(row.teacherCode)) {
+        errors.push({ rowNumber: row.rowNumber, message: 'Mã số giảng viên đã tồn tại trong hệ thống.' });
+        return;
+      }
+
+      const duplicatedNationalId =
+        existingTeacherNationalIdSet.has(row.nationalIdNumber) ||
+        existingStudentNationalIdSet.has(row.nationalIdNumber);
+      if (duplicatedNationalId) {
+        errors.push({ rowNumber: row.rowNumber, message: 'CCCD đã tồn tại ở sinh viên hoặc giảng viên khác.' });
+        return;
+      }
+
+      const duplicatedPhone =
+        existingTeacherPhoneSet.has(row.phone) ||
+        existingStudentPhoneSet.has(row.phone);
+      if (duplicatedPhone) {
+        errors.push({ rowNumber: row.rowNumber, message: 'Số điện thoại đã tồn tại ở sinh viên hoặc giảng viên khác.' });
+        return;
+      }
+
+      if (existingUsernameSet.has(buildTeacherUsername(row.teacherCode))) {
+        errors.push({ rowNumber: row.rowNumber, message: 'Tài khoản giảng viên đã tồn tại trong hệ thống.' });
+        return;
+      }
+
+      dbValidatedRows.push(row);
+    });
+
+    return {
+      totalRows: records.length,
+      validRows: dbValidatedRows,
+      errors,
+    };
+  }
+
+  return {
+    totalRows: records.length,
+    validRows,
+    errors,
+  };
+};
+
+const batchCreateTeachersFromValidated = async (validRows) => {
+  const createdRows = [];
+  const errors = [];
+
+  for (const item of validRows) {
+    try {
+      const payload = normalizeTeacherPayload(item);
+      const validationMessage = validateTeacherPayload(payload);
+      if (validationMessage) {
+        errors.push({
+          rowNumber: item.rowNumber || null,
+          message: validationMessage,
+        });
+        continue;
+      }
+
+      const teacher = await createTeacher(payload);
+      createdRows.push({
+        rowNumber: item.rowNumber || null,
+        teacherId: teacher._id,
+        teacherCode: teacher.teacherCode,
+        fullName: teacher.fullName,
+      });
+    } catch (error) {
+      const message =
+        error.status === 409
+          ? error.message
+          : error.code === 11000
+            ? getDuplicateKeyMessage(error)
+            : 'Lỗi server khi thêm giảng viên.';
+
+      errors.push({ rowNumber: item.rowNumber || null, message });
+    }
+  }
+
+  return { createdRows, errors };
+};
+
+const importTeachersFromCsv = async (fileBuffer) => {
+  const { totalRows, validRows, errors: previewErrors } = await validateAndParseTeachersCsv(fileBuffer);
+  const { createdRows, errors: commitErrors } = await batchCreateTeachersFromValidated(validRows);
+  const errors = [...previewErrors, ...commitErrors];
+
+  return {
+    summary: {
+      totalRows,
+      createdRows: createdRows.length,
+      failedRows: errors.length,
+    },
+    createdRows,
+    errors,
+  };
+};
+
+module.exports = {
+  listTeachers,
+  getTeacherById,
+  createTeacher,
+  updateTeacher,
+  deleteTeacher,
+  validateAndParseTeachersCsv,
+  batchCreateTeachersFromValidated,
+  importTeachersFromCsv,
+};

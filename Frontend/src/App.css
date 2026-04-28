@@ -545,6 +545,7 @@
 
 .student-search button,
 .add-student-button,
+.import-student-button,
 .table-button,
 .modal-actions button {
   height: 42px;
@@ -564,6 +565,24 @@
 
 .add-student-button {
   white-space: nowrap;
+}
+
+.student-toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.import-student-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  position: relative;
+}
+
+.import-student-button input[type='file'] {
+  display: none;
 }
 
 .student-table-wrap {

@@ -18,6 +18,11 @@ function TeacherManagement({ onTeacherChanged }) {
     teacherAccount,
     teacherAccountNotice,
     isTeacherAccountSaving,
+    isTeachersImporting,
+    isTeacherImportPreviewOpen,
+    teacherImportPreview,
+    isTeacherImportCommitting,
+    teacherImportSuccess,
     handleTeacherSearchSubmit,
     openCreateTeacherModal,
     openTeacherDetailModal,
@@ -31,6 +36,10 @@ function TeacherManagement({ onTeacherChanged }) {
     closeTeacherAccountModal,
     handleToggleTeacherAccountStatus,
     handleResetTeacherAccountPassword,
+    handleImportTeachersCsv,
+    handleCommitTeachersImport,
+    handleCloseTeacherImportPreview,
+    handleCloseTeacherImportSuccess,
   } = useTeacherManagement({
     onTeacherChanged,
   })
@@ -41,6 +50,8 @@ function TeacherManagement({ onTeacherChanged }) {
       onTeacherSearchKeywordChange={setTeacherSearchKeyword}
       onTeacherSearchSubmit={handleTeacherSearchSubmit}
       onOpenCreateTeacherModal={openCreateTeacherModal}
+      isTeachersImporting={isTeachersImporting}
+      onImportTeachersCsv={handleImportTeachersCsv}
       teachersError={teachersError}
       isTeachersLoading={isTeachersLoading}
       teachers={teachers}
@@ -59,12 +70,19 @@ function TeacherManagement({ onTeacherChanged }) {
       teacherAccount={teacherAccount}
       teacherAccountNotice={teacherAccountNotice}
       isTeacherAccountSaving={isTeacherAccountSaving}
+      isTeacherImportPreviewOpen={isTeacherImportPreviewOpen}
+      teacherImportPreview={teacherImportPreview}
+      isTeacherImportCommitting={isTeacherImportCommitting}
+      teacherImportSuccess={teacherImportSuccess}
       onStartEditing={handleStartEditing}
       onCancelEditing={handleCancelEditing}
       onOpenTeacherAccountModal={openTeacherAccountModal}
       onCloseTeacherAccountModal={closeTeacherAccountModal}
       onToggleTeacherAccountStatus={handleToggleTeacherAccountStatus}
       onResetTeacherAccountPassword={handleResetTeacherAccountPassword}
+      onCommitTeachersImport={handleCommitTeachersImport}
+      onCloseTeacherImportPreview={handleCloseTeacherImportPreview}
+      onCloseTeacherImportSuccess={handleCloseTeacherImportSuccess}
     />
   )
 }

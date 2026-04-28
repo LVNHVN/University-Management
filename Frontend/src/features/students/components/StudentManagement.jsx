@@ -18,6 +18,11 @@ function StudentManagement({ onStudentChanged }) {
     studentAccount,
     studentAccountNotice,
     isStudentAccountSaving,
+    isStudentsImporting,
+    isStudentImportPreviewOpen,
+    studentImportPreview,
+    isStudentImportCommitting,
+    studentImportSuccess,
     handleStudentSearchSubmit,
     openCreateStudentModal,
     openStudentDetailModal,
@@ -31,6 +36,10 @@ function StudentManagement({ onStudentChanged }) {
     closeStudentAccountModal,
     handleToggleStudentAccountStatus,
     handleResetStudentAccountPassword,
+    handleImportStudentsCsv,
+    handleCommitStudentsImport,
+    handleCloseStudentImportPreview,
+    handleCloseStudentImportSuccess,
   } = useStudentManagement({
     onStudentChanged,
   })
@@ -41,6 +50,8 @@ function StudentManagement({ onStudentChanged }) {
       onStudentSearchKeywordChange={setStudentSearchKeyword}
       onStudentSearchSubmit={handleStudentSearchSubmit}
       onOpenCreateStudentModal={openCreateStudentModal}
+      isStudentsImporting={isStudentsImporting}
+      onImportStudentsCsv={handleImportStudentsCsv}
       studentsError={studentsError}
       isStudentsLoading={isStudentsLoading}
       students={students}
@@ -59,12 +70,19 @@ function StudentManagement({ onStudentChanged }) {
       studentAccount={studentAccount}
       studentAccountNotice={studentAccountNotice}
       isStudentAccountSaving={isStudentAccountSaving}
+      isStudentImportPreviewOpen={isStudentImportPreviewOpen}
+      studentImportPreview={studentImportPreview}
+      isStudentImportCommitting={isStudentImportCommitting}
+      studentImportSuccess={studentImportSuccess}
       onStartEditing={handleStartEditing}
       onCancelEditing={handleCancelEditing}
       onOpenStudentAccountModal={openStudentAccountModal}
       onCloseStudentAccountModal={closeStudentAccountModal}
       onToggleStudentAccountStatus={handleToggleStudentAccountStatus}
       onResetStudentAccountPassword={handleResetStudentAccountPassword}
+      onCommitStudentsImport={handleCommitStudentsImport}
+      onCloseStudentImportPreview={handleCloseStudentImportPreview}
+      onCloseStudentImportSuccess={handleCloseStudentImportSuccess}
     />
   )
 }

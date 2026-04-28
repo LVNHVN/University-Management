@@ -37,3 +37,37 @@ export const updateStudentAccount = async (userId, payload) => {
   const response = await axios.patch(`${API_BASE_URL}/api/users/${userId}/account`, payload)
   return response.data
 }
+
+export const importStudentsFromCsv = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await axios.post(`${API_BASE_URL}/api/students/import/csv`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+
+  return response.data
+}
+
+export const previewStudentsImport = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await axios.post(`${API_BASE_URL}/api/students/import/csv/preview`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+
+  return response.data
+}
+
+export const commitStudentsImport = async (validRows) => {
+  const response = await axios.post(`${API_BASE_URL}/api/students/import/csv/commit`, {
+    validRows,
+  })
+
+  return response.data
+}

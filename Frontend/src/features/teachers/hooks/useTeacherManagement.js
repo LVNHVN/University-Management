@@ -3,9 +3,11 @@ import { formatDateForDisplay, parseDisplayDateToIso } from '../../../shared/uti
 import { TEACHER_INITIAL_FORM } from '../constants/teacherConstants'
 import {
   createTeacher,
+  commitTeachersImport,
   fetchTeacherAccount,
   fetchTeacherDetail,
   fetchTeachers,
+  previewTeachersImport,
   removeTeacher,
   updateTeacherAccount,
   updateTeacher,
@@ -29,6 +31,11 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
   const [teacherAccount, setTeacherAccount] = useState(null)
   const [teacherAccountNotice, setTeacherAccountNotice] = useState('')
   const [isTeacherAccountSaving, setIsTeacherAccountSaving] = useState(false)
+  const [isTeachersImporting, setIsTeachersImporting] = useState(false)
+  const [isTeacherImportPreviewOpen, setIsTeacherImportPreviewOpen] = useState(false)
+  const [teacherImportPreview, setTeacherImportPreview] = useState(null)
+  const [isTeacherImportCommitting, setIsTeacherImportCommitting] = useState(false)
+  const [teacherImportSuccess, setTeacherImportSuccess] = useState(null)
 
   const loadTeachers = useCallback(async (keyword = '') => {
     setIsTeachersLoading(true)
@@ -297,6 +304,71 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     }
   }, [loadTeachers, onTeacherChanged, teacherSearchKeyword])
 
+  const handleImportTeachersCsv = useCallback(async (file) => {
+    if (!file) {
+      return
+    }
+
+    const normalizedFileName = String(file.name || '').toLowerCase()
+    const isCsvType = file.type.includes('csv') || file.type === 'text/plain' || normalizedFileName.endsWith('.csv')
+
+    if (!isCsvType) {
+      setTeachersError('Chỉ hỗ trợ import file .csv.')
+      return
+    }
+
+    setIsTeachersImporting(true)
+    setTeachersError('')
+
+    try {
+      const payload = await previewTeachersImport(file)
+      setTeacherImportPreview(payload)
+      setIsTeacherImportPreviewOpen(true)
+    } catch (error) {
+      const backendMessage = error.response?.data?.message
+      setTeachersError(backendMessage || 'Không thể đọc file import giảng viên.')
+    } finally {
+      setIsTeachersImporting(false)
+    }
+  }, [])
+
+  const handleCommitTeachersImport = useCallback(async () => {
+    if (!teacherImportPreview?.validRows?.length) {
+      return
+    }
+
+    setIsTeacherImportCommitting(true)
+    setTeachersError('')
+
+    try {
+      const payload = await commitTeachersImport(teacherImportPreview.validRows)
+      setIsTeacherImportPreviewOpen(false)
+      setTeacherImportPreview(null)
+      setTeacherImportSuccess({
+        createdRows: payload?.summary?.createdRows ?? 0,
+        totalRows: payload?.summary?.totalRows ?? teacherImportPreview.validRows.length,
+      })
+      await Promise.all([loadTeachers(teacherSearchKeyword), onTeacherChanged?.()])
+    } catch (error) {
+      const backendMessage = error.response?.data?.message
+      setTeachersError(backendMessage || 'Không thể lưu dữ liệu import giảng viên.')
+    } finally {
+      setIsTeacherImportCommitting(false)
+    }
+  }, [loadTeachers, onTeacherChanged, teacherImportPreview, teacherSearchKeyword])
+
+  const handleCloseTeacherImportPreview = useCallback(() => {
+    if (isTeacherImportCommitting) {
+      return
+    }
+    setIsTeacherImportPreviewOpen(false)
+    setTeacherImportPreview(null)
+  }, [isTeacherImportCommitting])
+
+  const handleCloseTeacherImportSuccess = useCallback(() => {
+    setTeacherImportSuccess(null)
+  }, [])
+
   return {
     teacherSearchKeyword,
     setTeacherSearchKeyword,
@@ -313,6 +385,11 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     teacherAccount,
     teacherAccountNotice,
     isTeacherAccountSaving,
+    isTeachersImporting,
+    isTeacherImportPreviewOpen,
+    teacherImportPreview,
+    isTeacherImportCommitting,
+    teacherImportSuccess,
     handleTeacherSearchSubmit,
     openCreateTeacherModal,
     openTeacherDetailModal,
@@ -326,5 +403,9 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     closeTeacherAccountModal,
     handleToggleTeacherAccountStatus,
     handleResetTeacherAccountPassword,
+    handleImportTeachersCsv,
+    handleCommitTeachersImport,
+    handleCloseTeacherImportPreview,
+    handleCloseTeacherImportSuccess,
   }
 }

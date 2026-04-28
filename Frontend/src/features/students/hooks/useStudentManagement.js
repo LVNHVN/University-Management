@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { formatDateForDisplay, parseDisplayDateToIso } from '../../../shared/utils/date'
 import { STUDENT_INITIAL_FORM } from '../constants/studentConstants'
 import {
+  commitStudentsImport,
   createStudent,
   fetchStudentAccount,
   fetchStudentDetail,
   fetchStudents,
+  previewStudentsImport,
   removeStudent,
   updateStudentAccount,
   updateStudent,
@@ -29,6 +31,11 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
   const [studentAccount, setStudentAccount] = useState(null)
   const [studentAccountNotice, setStudentAccountNotice] = useState('')
   const [isStudentAccountSaving, setIsStudentAccountSaving] = useState(false)
+  const [isStudentsImporting, setIsStudentsImporting] = useState(false)
+  const [isStudentImportPreviewOpen, setIsStudentImportPreviewOpen] = useState(false)
+  const [studentImportPreview, setStudentImportPreview] = useState(null)
+  const [isStudentImportCommitting, setIsStudentImportCommitting] = useState(false)
+  const [studentImportSuccess, setStudentImportSuccess] = useState(null)
 
   const loadStudents = useCallback(async (keyword = '') => {
     setIsStudentsLoading(true)
@@ -312,6 +319,70 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     }
   }, [loadStudents, onStudentChanged, studentSearchKeyword])
 
+  const handleImportStudentsCsv = useCallback(async (file) => {
+    if (!file) {
+      return
+    }
+
+    const normalizedFileName = String(file.name || '').toLowerCase()
+    const isCsvType = file.type.includes('csv') || file.type === 'text/plain' || normalizedFileName.endsWith('.csv')
+
+    if (!isCsvType) {
+      setStudentsError('Chỉ hỗ trợ import file .csv.')
+      return
+    }
+
+    setIsStudentsImporting(true)
+    setStudentsError('')
+
+    try {
+      const payload = await previewStudentsImport(file)
+      setStudentImportPreview(payload)
+      setIsStudentImportPreviewOpen(true)
+    } catch (error) {
+      const backendMessage = error.response?.data?.message
+      setStudentsError(backendMessage || 'Không thể đọc file import sinh viên.')
+    } finally {
+      setIsStudentsImporting(false)
+    }
+  }, [])
+
+  const handleCommitStudentsImport = useCallback(async () => {
+    if (!studentImportPreview?.validRows?.length) {
+      return
+    }
+
+    setIsStudentImportCommitting(true)
+    setStudentsError('')
+
+    try {
+      const payload = await commitStudentsImport(studentImportPreview.validRows)
+      setIsStudentImportPreviewOpen(false)
+      setStudentImportPreview(null)
+      setStudentImportSuccess({
+        createdRows: payload?.summary?.createdRows ?? 0,
+      })
+      await Promise.all([loadStudents(studentSearchKeyword), onStudentChanged?.()])
+    } catch (error) {
+      const backendMessage = error.response?.data?.message
+      setStudentsError(backendMessage || 'Không thể lưu dữ liệu import sinh viên.')
+    } finally {
+      setIsStudentImportCommitting(false)
+    }
+  }, [loadStudents, onStudentChanged, studentImportPreview, studentSearchKeyword])
+
+  const handleCloseStudentImportPreview = useCallback(() => {
+    if (isStudentImportCommitting) {
+      return
+    }
+    setIsStudentImportPreviewOpen(false)
+    setStudentImportPreview(null)
+  }, [isStudentImportCommitting])
+
+  const handleCloseStudentImportSuccess = useCallback(() => {
+    setStudentImportSuccess(null)
+  }, [])
+
   return {
     studentSearchKeyword,
     setStudentSearchKeyword,
@@ -328,6 +399,11 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     studentAccount,
     studentAccountNotice,
     isStudentAccountSaving,
+    isStudentsImporting,
+    isStudentImportPreviewOpen,
+    studentImportPreview,
+    isStudentImportCommitting,
+    studentImportSuccess,
     loadStudents,
     resetStudentManagement,
     handleStudentSearchSubmit,
@@ -343,5 +419,9 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     closeStudentAccountModal,
     handleToggleStudentAccountStatus,
     handleResetStudentAccountPassword,
+    handleImportStudentsCsv,
+    handleCommitStudentsImport,
+    handleCloseStudentImportPreview,
+    handleCloseStudentImportSuccess,
   }
 }

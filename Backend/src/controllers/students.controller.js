@@ -1,5 +1,23 @@
+const multer = require('multer');
 const { normalizeStudentPayload, validateStudentPayload } = require('../validators/students.validator');
-const { listStudents, getStudentById, createStudent, updateStudent, deleteStudent } = require('../services/students.service');
+const { getDuplicateKeyMessage } = require('../utils/duplicateKey');
+const {
+  listStudents,
+  getStudentById,
+  createStudent,
+  updateStudent,
+  deleteStudent,
+  validateAndParseStudentsCsv,
+  batchCreateStudentsFromValidated,
+  importStudentsFromCsv,
+} = require('../services/students.service');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+});
 
 const handleListStudents = async (req, res, next) => {
   try {
@@ -39,7 +57,7 @@ const handleCreateStudent = async (req, res, next) => {
       return res.status(409).json({ success: false, message: error.message });
     }
     if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Dữ liệu bị trùng, vui lòng kiểm tra lại.' });
+      return res.status(409).json({ success: false, message: getDuplicateKeyMessage(error) });
     }
     return next(error);
   }
@@ -64,7 +82,7 @@ const handleUpdateStudent = async (req, res, next) => {
       return res.status(409).json({ success: false, message: error.message });
     }
     if (error.code === 11000) {
-      return res.status(409).json({ success: false, message: 'Dữ liệu bị trùng, vui lòng kiểm tra lại.' });
+      return res.status(409).json({ success: false, message: getDuplicateKeyMessage(error) });
     }
     return next(error);
   }
@@ -82,4 +100,110 @@ const handleDeleteStudent = async (req, res, next) => {
   }
 };
 
-module.exports = { handleListStudents, handleGetStudent, handleCreateStudent, handleUpdateStudent, handleDeleteStudent };
+const handleImportStudentsFromCsv = [
+  upload.single('file'),
+  async (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Vui lòng tải lên file CSV.' });
+    }
+
+    const fileName = String(req.file.originalname || '').toLowerCase();
+    const mimeType = String(req.file.mimetype || '').toLowerCase();
+    const isCsvMime = mimeType.includes('csv') || mimeType.includes('excel') || mimeType === 'text/plain';
+
+    if (!fileName.endsWith('.csv') && !isCsvMime) {
+      return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv ở chức năng này.' });
+    }
+
+    try {
+      const result = await importStudentsFromCsv(req.file.buffer);
+
+      return res.json({
+        success: true,
+        message: `Đã import ${result.summary.createdRows}/${result.summary.totalRows} dòng hợp lệ.`,
+        ...result,
+      });
+    } catch (error) {
+      if (error.status === 400) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+
+      return next(error);
+    }
+  },
+];
+
+const handlePreviewStudentsImport = [
+  upload.single('file'),
+  async (req, res, next) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Vui lòng tải lên file CSV.' });
+    }
+
+    const fileName = String(req.file.originalname || '').toLowerCase();
+    const mimeType = String(req.file.mimetype || '').toLowerCase();
+    const isCsvMime = mimeType.includes('csv') || mimeType.includes('excel') || mimeType === 'text/plain';
+
+    if (!fileName.endsWith('.csv') && !isCsvMime) {
+      return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv ở chức năng này.' });
+    }
+
+    try {
+      const result = await validateAndParseStudentsCsv(req.file.buffer);
+
+      return res.json({
+        success: true,
+        summary: {
+          totalRows: result.totalRows,
+          validRows: result.validRows.length,
+          errorRows: result.errors.length,
+        },
+        validRows: result.validRows,
+        errors: result.errors,
+      });
+    } catch (error) {
+      if (error.status === 400) {
+        return res.status(400).json({ success: false, message: error.message });
+      }
+
+      return next(error);
+    }
+  },
+];
+
+const handleCommitStudentsImport = async (req, res, next) => {
+  const { validRows } = req.body;
+
+  if (!Array.isArray(validRows)) {
+    return res.status(400).json({ success: false, message: 'Dữ liệu preview không hợp lệ.' });
+  }
+
+  try {
+    const { createdRows, errors } = await batchCreateStudentsFromValidated(validRows);
+
+    return res.json({
+      success: true,
+      message: `Đã lưu ${createdRows.length}/${validRows.length} sinh viên.`,
+      summary: {
+        totalRows: validRows.length,
+        createdRows: createdRows.length,
+        failedRows: errors.length,
+      },
+      createdRows,
+      errors,
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = {
+  handleListStudents,
+  handleGetStudent,
+  handleCreateStudent,
+  handleUpdateStudent,
+  handleDeleteStudent,
+  handleImportStudentsFromCsv,
+  handlePreviewStudentsImport,
+  handleCommitStudentsImport,
+};
