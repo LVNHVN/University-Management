@@ -1,6 +1,7 @@
 import LoginPage from './features/auth/components/LoginPage'
 import { useAuth } from './features/auth/hooks/useAuth'
 import DashboardShell from './layout/components/DashboardShell'
+import UserPortalShell from './layout/components/UserPortalShell'
 import './App.css'
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY
@@ -13,6 +14,7 @@ function App() {
     notice,
     currentRole,
     currentUserName,
+    currentFullName,
     recaptchaRef,
     handleChange,
     handleSubmit,
@@ -21,13 +23,24 @@ function App() {
     logout,
   } = useAuth()
 
-  if (currentRole) {
+  if (currentRole === 'admin') {
     return (
       <DashboardShell
         currentRole={currentRole}
         currentUserName={currentUserName}
         onLogout={logout}
-        userMenuLabel={USER_MENU_LABEL}
+        userMenuLabel={currentFullName || currentUserName}
+      />
+    )
+  }
+
+  if (currentRole === 'student' || currentRole === 'teacher') {
+    return (
+      <UserPortalShell
+        currentRole={currentRole}
+        currentUserName={currentUserName}
+        currentFullName={currentFullName}
+        onLogout={logout}
       />
     )
   }

@@ -1,10 +1,26 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { API_BASE_URL } from '../../../shared/constants/api'
-import { login, verifyRecaptcha } from '../services/authService'
+import { login, verifyRecaptcha, fetchMe, requestLogout } from '../services/authService'
 
 const INITIAL_FORM_DATA = {
   username: '',
   password: '',
+}
+
+const getStoredAuth = () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) return { role: '', username: '' }
+    const payload = JSON.parse(atob(token.split('.')[1]))
+    if (payload.exp * 1000 < Date.now()) {
+      localStorage.removeItem('token')
+      return { role: '', username: '' }
+    }
+    return { role: payload.role || '', username: payload.username || '' }
+  } catch {
+    localStorage.removeItem('token')
+    return { role: '', username: '' }
+  }
 }
 
 export const useAuth = ({ onLoginSuccess } = {}) => {
@@ -13,8 +29,23 @@ export const useAuth = ({ onLoginSuccess } = {}) => {
   const [notice, setNotice] = useState('')
   const [currentRole, setCurrentRole] = useState('')
   const [currentUserName, setCurrentUserName] = useState('')
+  const [currentFullName, setCurrentFullName] = useState('')
   const [captchaToken, setCaptchaToken] = useState('')
   const recaptchaRef = useRef(null)
+
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    fetchMe()
+      .then(({ user }) => {
+        setCurrentRole(user.role)
+        setCurrentUserName(user.username)
+        setCurrentFullName(user.fullName || '')
+      })
+      .catch(() => {
+        localStorage.removeItem('token')
+      })
+  }, [])
 
   const handleChange = useCallback((event) => {
     const { name, value } = event.target
@@ -68,8 +99,12 @@ export const useAuth = ({ onLoginSuccess } = {}) => {
       })
 
       if (loginResponse?.success && loginResponse?.user?.role) {
+        if (loginResponse.user.token) {
+          localStorage.setItem('token', loginResponse.user.token)
+        }
         setCurrentRole(loginResponse.user.role)
-        setCurrentUserName(loginResponse.user.username || 'Nguyen Van A')
+        setCurrentUserName(loginResponse.user.username || '')
+        setCurrentFullName(loginResponse.user.fullName || '')
         onLoginSuccess?.(loginResponse.user)
         return
       }
@@ -91,9 +126,17 @@ export const useAuth = ({ onLoginSuccess } = {}) => {
     }
   }, [captchaToken, formData.password, formData.username, onLoginSuccess, resetRecaptcha])
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
+    try {
+      await requestLogout()
+    } catch {
+      // Always clear local auth state even if backend logout fails.
+    }
+
+    localStorage.removeItem('token')
     setCurrentRole('')
     setCurrentUserName('')
+    setCurrentFullName('')
     setNotice('')
     setFormData(INITIAL_FORM_DATA)
     resetRecaptcha()
@@ -105,6 +148,7 @@ export const useAuth = ({ onLoginSuccess } = {}) => {
     notice,
     currentRole,
     currentUserName,
+    currentFullName,
     recaptchaRef,
     handleChange,
     handleSubmit,

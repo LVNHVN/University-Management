@@ -10,8 +10,11 @@ const {
   handleCommitTeachersImport,
 } = require('../controllers/teachers.controller');
 const { handleGetTeacherAccount } = require('../controllers/accounts.controller');
+const { authenticate, authorize } = require('../middleware/authenticate');
 
 const router = Router();
+
+router.use(authenticate, authorize('admin'));
 
 router.get('/', handleListTeachers);
 router.get('/:id', handleGetTeacher);

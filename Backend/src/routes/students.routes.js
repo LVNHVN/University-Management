@@ -10,8 +10,11 @@ const {
   handleCommitStudentsImport,
 } = require('../controllers/students.controller');
 const { handleGetStudentAccount } = require('../controllers/accounts.controller');
+const { authenticate, authorize } = require('../middleware/authenticate');
 
 const router = Router();
+
+router.use(authenticate, authorize('admin'));
 
 router.get('/', handleListStudents);
 router.get('/:id', handleGetStudent);

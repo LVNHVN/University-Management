@@ -5,6 +5,8 @@ function DashboardHeader({
   onLogout,
   userMenuRef,
   userMenuLabel,
+  showPersonalInfo = false,
+  onPersonalInfo,
 }) {
   return (
     <header className="dashboard-header">
@@ -26,13 +28,18 @@ function DashboardHeader({
           onClick={onToggleUserMenu}
         >
           <span className="user-avatar" aria-hidden="true">
-            {(currentUserName.charAt(0).toUpperCase() || userMenuLabel.charAt(0).toUpperCase() || 'U')}
+            {(userMenuLabel || currentUserName || '').trim().split(/\s+/).pop()?.charAt(0).toUpperCase() || 'U'}
           </span>
         </button>
 
         {isUserMenuOpen && (
           <div className="user-menu-dropdown" role="menu">
             <p className="menu-user-name">{userMenuLabel}</p>
+            {showPersonalInfo && (
+              <button type="button" className="menu-button" role="menuitem" onClick={onPersonalInfo}>
+                Thông tin cá nhân
+              </button>
+            )}
             <button type="button" className="menu-button" role="menuitem">
               Đổi mật khẩu
             </button>

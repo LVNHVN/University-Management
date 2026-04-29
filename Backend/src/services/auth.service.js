@@ -1,6 +1,39 @@
-const { RECAPTCHA_SECRET_KEY } = require('../config/env');
+const { RECAPTCHA_SECRET_KEY, JWT_SECRET } = require('../config/env');
 const User = require('../../Models/User');
+const Student = require('../../Models/Student');
+const Teacher = require('../../Models/Teacher');
+const RevokedToken = require('../../Models/RevokedToken');
 const bcrypt = require('bcryptjs');
+const { randomUUID } = require('crypto');
+const jwt = require('jsonwebtoken');
+
+const getFullName = async (userId, role) => {
+  if (role === 'student') {
+    const student = await Student.findOne({ userId }).select('fullName').lean();
+    return student?.fullName || '';
+  }
+  if (role === 'teacher') {
+    const teacher = await Teacher.findOne({ userId }).select('fullName').lean();
+    return teacher?.fullName || '';
+  }
+  return '';
+};
+
+const getProfile = async (userId, role) => {
+  if (role === 'student') {
+    const student = await Student.findOne({ userId })
+      .select('studentCode fullName dob gender nationalIdNumber phone address major academicYear')
+      .lean();
+    return student ? { ...student, role } : null;
+  }
+  if (role === 'teacher') {
+    const teacher = await Teacher.findOne({ userId })
+      .select('teacherCode fullName dob gender nationalIdNumber phone address department')
+      .lean();
+    return teacher ? { ...teacher, role } : null;
+  }
+  return null;
+};
 
 const verifyRecaptcha = async (token) => {
   const payload = new URLSearchParams({
@@ -47,7 +80,30 @@ const login = async ({ username, password }) => {
     throw error;
   }
 
-  return { username: user.username, role: user.role };
+  const token = jwt.sign(
+    { id: user._id, username: user.username, role: user.role, jti: randomUUID() },
+    JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  const fullName = await getFullName(user._id, user.role);
+
+  return { username: user.username, role: user.role, fullName, token };
 };
 
-module.exports = { verifyRecaptcha, login };
+const revokeToken = async ({ jti, exp }) => {
+  if (!jti || !exp) return;
+
+  await RevokedToken.findOneAndUpdate(
+    { jti },
+    {
+      $setOnInsert: {
+        jti,
+        expiresAt: new Date(exp * 1000),
+      },
+    },
+    { upsert: true, new: false }
+  );
+};
+
+module.exports = { verifyRecaptcha, login, getFullName, getProfile, revokeToken };

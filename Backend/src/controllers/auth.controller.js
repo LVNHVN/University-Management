@@ -1,4 +1,4 @@
-const { verifyRecaptcha, login } = require('../services/auth.service');
+const { verifyRecaptcha, login, getFullName, getProfile, revokeToken } = require('../services/auth.service');
 
 const handleVerifyRecaptcha = async (req, res, next) => {
   const { token } = req.body;
@@ -40,4 +40,39 @@ const handleLogin = async (req, res, next) => {
   }
 };
 
-module.exports = { handleVerifyRecaptcha, handleLogin };
+const handleMe = async (req, res, next) => {
+  try {
+    const fullName = await getFullName(req.user.id, req.user.role);
+    return res.json({
+      success: true,
+      user: {
+        id: req.user.id,
+        username: req.user.username,
+        role: req.user.role,
+        fullName,
+      },
+    });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const handleProfile = async (req, res, next) => {
+  try {
+    const profile = await getProfile(req.user.id, req.user.role);
+    return res.json({ success: true, profile });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+const handleLogout = async (req, res, next) => {
+  try {
+    await revokeToken({ jti: req.jwt?.jti, exp: req.jwt?.exp });
+    return res.json({ success: true });
+  } catch (error) {
+    return next(error);
+  }
+};
+
+module.exports = { handleVerifyRecaptcha, handleLogin, handleMe, handleProfile, handleLogout };
