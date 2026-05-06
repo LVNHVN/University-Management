@@ -45,6 +45,8 @@ function StudentManagement({ onStudentChanged }) {
     handleCommitStudentsImport,
     handleCloseStudentImportPreview,
     handleCloseStudentImportSuccess,
+    confirmDialog,
+    handleConfirmDialogClose,
   } = useStudentManagement({
     onStudentChanged,
   })
@@ -93,6 +95,8 @@ function StudentManagement({ onStudentChanged }) {
       onCommitStudentsImport={handleCommitStudentsImport}
       onCloseStudentImportPreview={handleCloseStudentImportPreview}
       onCloseStudentImportSuccess={handleCloseStudentImportSuccess}
+      confirmDialog={confirmDialog}
+      onConfirmDialogClose={handleConfirmDialogClose}
     />
   )
 }

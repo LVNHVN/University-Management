@@ -1,3 +1,5 @@
+import ConfirmDialog from '../../../shared/components/ConfirmDialog'
+
 function StudentManagementView({
   studentSearchKeyword,
   onStudentSearchKeywordChange,
@@ -41,6 +43,8 @@ function StudentManagementView({
   onCloseStudentAccountModal,
   onToggleStudentAccountStatus,
   onResetStudentAccountPassword,
+  confirmDialog,
+  onConfirmDialogClose,
 }) {
   const isViewOnly = studentModalMode === 'detail'
   const roleLabelMap = {
@@ -520,6 +524,16 @@ function StudentManagementView({
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog?.isOpen}
+        title={confirmDialog?.title}
+        message={confirmDialog?.message}
+        onConfirm={confirmDialog?.onConfirm}
+        onCancel={onConfirmDialogClose}
+        confirmLabel="Xác nhận"
+        isDangerous
+      />
     </div>
   )
 }

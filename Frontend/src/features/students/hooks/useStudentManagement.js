@@ -38,6 +38,7 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
   const [studentImportPreview, setStudentImportPreview] = useState(null)
   const [isStudentImportCommitting, setIsStudentImportCommitting] = useState(false)
   const [studentImportSuccess, setStudentImportSuccess] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
 
   const loadStudents = useCallback(async (keyword = '') => {
     setIsStudentsLoading(true)
@@ -244,31 +245,34 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
       return
     }
 
-    const shouldReset = window.confirm('Bạn có chắc muốn đặt lại mật khẩu về mặc định 123456?')
-    if (!shouldReset) {
-      return
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Đặt lại mật khẩu',
+      message: 'Bạn có chắc muốn đặt lại mật khẩu tài khoản về mặc định 123456?',
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+        setIsStudentAccountSaving(true)
+        setStudentAccountNotice('')
 
-    setIsStudentAccountSaving(true)
-    setStudentAccountNotice('')
+        try {
+          const payload = await updateStudentAccount(studentAccount.userId, {
+            resetPassword: true,
+          })
 
-    try {
-      const payload = await updateStudentAccount(studentAccount.userId, {
-        resetPassword: true,
-      })
+          if (!payload?.success || !payload.account) {
+            throw new Error('Không đặt lại được mật khẩu tài khoản.')
+          }
 
-      if (!payload?.success || !payload.account) {
-        throw new Error('Không đặt lại được mật khẩu tài khoản.')
-      }
-
-      setStudentAccount(payload.account)
-      setStudentAccountNotice(payload.message || 'Đã đặt lại mật khẩu mặc định 123456.')
-    } catch (error) {
-      const backendMessage = error.response?.data?.message
-      setStudentAccountNotice(backendMessage || 'Không đặt lại được mật khẩu tài khoản.')
-    } finally {
-      setIsStudentAccountSaving(false)
-    }
+          setStudentAccount(payload.account)
+          setStudentAccountNotice(payload.message || 'Đã đặt lại mật khẩu mặc định 123456.')
+        } catch (error) {
+          const backendMessage = error.response?.data?.message
+          setStudentAccountNotice(backendMessage || 'Không đặt lại được mật khẩu tài khoản.')
+        } finally {
+          setIsStudentAccountSaving(false)
+        }
+      },
+    })
   }, [studentAccount])
 
   const handleStudentFormSubmit = useCallback(async (event) => {
@@ -321,20 +325,27 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     }
   }, [loadStudents, onStudentChanged, selectedStudentId, studentForm, studentModalMode, studentSearchKeyword])
 
-  const handleDeleteStudent = useCallback(async (student) => {
-    const shouldDelete = window.confirm(`Bạn có chắc muốn xóa sinh viên ${student.fullName}?`)
-    if (!shouldDelete) {
-      return
-    }
-
-    try {
-      await removeStudent(student._id)
-      await Promise.all([loadStudents(studentSearchKeyword), onStudentChanged?.()])
-    } catch (error) {
-      const backendMessage = error.response?.data?.message
-      setStudentsError(backendMessage || 'Không thể xóa sinh viên.')
-    }
+  const handleDeleteStudent = useCallback((student) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa sinh viên',
+      message: `Bạn có chắc muốn xóa sinh viên "${student.fullName}"? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+        try {
+          await removeStudent(student._id)
+          await Promise.all([loadStudents(studentSearchKeyword), onStudentChanged?.()])
+        } catch (error) {
+          const backendMessage = error.response?.data?.message
+          setStudentsError(backendMessage || 'Không thể xóa sinh viên.')
+        }
+      },
+    })
   }, [loadStudents, onStudentChanged, studentSearchKeyword])
+
+  const handleConfirmDialogClose = useCallback(() => {
+    setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+  }, [])
 
   const handleStudentImportFileChange = useCallback((file) => {
     if (!file) {
@@ -466,5 +477,7 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     handleCommitStudentsImport,
     handleCloseStudentImportPreview,
     handleCloseStudentImportSuccess,
+    confirmDialog,
+    handleConfirmDialogClose,
   }
 }

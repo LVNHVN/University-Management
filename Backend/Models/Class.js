@@ -14,7 +14,11 @@ const classSchema = new mongoose.Schema(
       required: true,
     },
     semester: { type: String, required: true, trim: true },
-    studentCount: { type: Number, default: 0, min: 0 },
+    studentCount: { type: Number, required: true, min: 0 },
+    dayOfWeek: { type: Number, required: true, min: 1, max: 7 },
+    startTime: { type: String, required: true, trim: true },
+    endTime: { type: String, required: true, trim: true },
+    room: { type: String, required: true, trim: true },
   },
   { versionKey: false }
 );

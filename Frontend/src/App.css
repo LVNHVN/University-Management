@@ -820,6 +820,75 @@
   font-size: 14px;
 }
 
+.student-form select {
+  height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0 10px;
+  font-size: 14px;
+  background: #ffffff;
+}
+
+.student-form textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  overflow: hidden;
+  min-height: 96px;
+}
+
+.subject-syllabus-picker,
+.subject-syllabus-card {
+  display: grid;
+  gap: 10px;
+}
+
+.subject-syllabus-card {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #dbe8ff;
+  background: #f8fbff;
+}
+
+.subject-syllabus-card.compact {
+  padding: 10px 12px;
+}
+
+.subject-syllabus-name {
+  margin: 0;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.subject-syllabus-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.subject-syllabus-preview {
+  border: 1px solid #dbe8ff;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.syllabus-preview-modal {
+  width: min(100%, 960px);
+}
+
+.subject-syllabus-preview iframe {
+  display: block;
+  width: 100%;
+  height: min(72svh, 760px);
+  border: 0;
+}
+
 .gender-options {
   height: auto;
   padding: 2px 0;
@@ -964,4 +1033,130 @@
     grid-template-columns: 1fr;
     justify-items: center;
   }
+}
+
+/* ── Curriculum subject picker ────────────────────────────── */
+
+.curriculum-subject-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.curriculum-subject-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.curriculum-total-credits {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.curriculum-total-credits strong {
+  color: #1d4ed8;
+}
+
+.curriculum-subject-picker {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.curriculum-subject-combobox {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.curriculum-subject-combobox input[type='text'] {
+  width: 100%;
+}
+
+.curriculum-subject-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  z-index: 20;
+  padding: 4px;
+}
+
+.curriculum-subject-option {
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  color: #1f2937;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.curriculum-subject-option:hover {
+  background: #eff6ff;
+}
+
+.curriculum-subject-picker input[type='number'] {
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.curriculum-add-subject-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  background: #1d4ed8;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.curriculum-add-subject-btn:hover {
+  background: #1e40af;
+}
+
+.curriculum-subjects-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.curriculum-subjects-table th,
+.curriculum-subjects-table td {
+  padding: 6px 10px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.curriculum-subjects-table th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #475569;
+}
+
+.curriculum-subjects-table td {
+  color: #374151;
+}
+
+.curriculum-subjects-table tbody tr:last-child td {
+  border-bottom: none;
 }

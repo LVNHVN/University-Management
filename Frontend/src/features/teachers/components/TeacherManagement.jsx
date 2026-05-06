@@ -45,6 +45,8 @@ function TeacherManagement({ onTeacherChanged }) {
     handleCommitTeachersImport,
     handleCloseTeacherImportPreview,
     handleCloseTeacherImportSuccess,
+    confirmDialog,
+    handleConfirmDialogClose,
   } = useTeacherManagement({
     onTeacherChanged,
   })
@@ -93,6 +95,8 @@ function TeacherManagement({ onTeacherChanged }) {
       onCommitTeachersImport={handleCommitTeachersImport}
       onCloseTeacherImportPreview={handleCloseTeacherImportPreview}
       onCloseTeacherImportSuccess={handleCloseTeacherImportSuccess}
+      confirmDialog={confirmDialog}
+      onConfirmDialogClose={handleConfirmDialogClose}
     />
   )
 }

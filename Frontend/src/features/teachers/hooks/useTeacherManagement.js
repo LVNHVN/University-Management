@@ -38,6 +38,7 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
   const [teacherImportPreview, setTeacherImportPreview] = useState(null)
   const [isTeacherImportCommitting, setIsTeacherImportCommitting] = useState(false)
   const [teacherImportSuccess, setTeacherImportSuccess] = useState(null)
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
 
   const loadTeachers = useCallback(async (keyword = '') => {
     setIsTeachersLoading(true)
@@ -228,31 +229,34 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
       return
     }
 
-    const shouldReset = window.confirm('Bạn có chắc muốn đặt lại mật khẩu về mặc định 123456?')
-    if (!shouldReset) {
-      return
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Đặt lại mật khẩu',
+      message: 'Bạn có chắc muốn đặt lại mật khẩu tài khoản về mặc định 123456?',
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+        setIsTeacherAccountSaving(true)
+        setTeacherAccountNotice('')
 
-    setIsTeacherAccountSaving(true)
-    setTeacherAccountNotice('')
+        try {
+          const payload = await updateTeacherAccount(teacherAccount.userId, {
+            resetPassword: true,
+          })
 
-    try {
-      const payload = await updateTeacherAccount(teacherAccount.userId, {
-        resetPassword: true,
-      })
+          if (!payload?.success || !payload.account) {
+            throw new Error('Không đặt lại được mật khẩu tài khoản.')
+          }
 
-      if (!payload?.success || !payload.account) {
-        throw new Error('Không đặt lại được mật khẩu tài khoản.')
-      }
-
-      setTeacherAccount(payload.account)
-      setTeacherAccountNotice(payload.message || 'Đã đặt lại mật khẩu mặc định 123456.')
-    } catch (error) {
-      const backendMessage = error.response?.data?.message
-      setTeacherAccountNotice(backendMessage || 'Không đặt lại được mật khẩu tài khoản.')
-    } finally {
-      setIsTeacherAccountSaving(false)
-    }
+          setTeacherAccount(payload.account)
+          setTeacherAccountNotice(payload.message || 'Đã đặt lại mật khẩu mặc định 123456.')
+        } catch (error) {
+          const backendMessage = error.response?.data?.message
+          setTeacherAccountNotice(backendMessage || 'Không đặt lại được mật khẩu tài khoản.')
+        } finally {
+          setIsTeacherAccountSaving(false)
+        }
+      },
+    })
   }, [teacherAccount])
 
   const handleTeacherFormSubmit = useCallback(async (event) => {
@@ -306,20 +310,27 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     }
   }, [loadTeachers, onTeacherChanged, selectedTeacherId, teacherForm, teacherModalMode, teacherSearchKeyword])
 
-  const handleDeleteTeacher = useCallback(async (teacher) => {
-    const shouldDelete = window.confirm(`Bạn có chắc muốn xóa giảng viên ${teacher.fullName}?`)
-    if (!shouldDelete) {
-      return
-    }
-
-    try {
-      await removeTeacher(teacher._id)
-      await Promise.all([loadTeachers(teacherSearchKeyword), onTeacherChanged?.()])
-    } catch (error) {
-      const backendMessage = error.response?.data?.message
-      setTeachersError(backendMessage || 'Không thể xóa giảng viên.')
-    }
+  const handleDeleteTeacher = useCallback((teacher) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Xóa giảng viên',
+      message: `Bạn có chắc muốn xóa giảng viên "${teacher.fullName}"? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+        try {
+          await removeTeacher(teacher._id)
+          await Promise.all([loadTeachers(teacherSearchKeyword), onTeacherChanged?.()])
+        } catch (error) {
+          const backendMessage = error.response?.data?.message
+          setTeachersError(backendMessage || 'Không thể xóa giảng viên.')
+        }
+      },
+    })
   }, [loadTeachers, onTeacherChanged, teacherSearchKeyword])
+
+  const handleConfirmDialogClose = useCallback(() => {
+    setConfirmDialog((prev) => ({ ...prev, isOpen: false }))
+  }, [])
 
   const handleTeacherImportFileChange = useCallback((file) => {
     if (!file) {
@@ -450,5 +461,7 @@ export const useTeacherManagement = ({ onTeacherChanged } = {}) => {
     handleCommitTeachersImport,
     handleCloseTeacherImportPreview,
     handleCloseTeacherImportSuccess,
+    confirmDialog,
+    handleConfirmDialogClose,
   }
 }
