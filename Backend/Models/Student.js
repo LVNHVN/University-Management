@@ -8,6 +8,10 @@ const studentSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    curriculumId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Curriculum',
+    },
     studentCode: { type: String, required: true, unique: true, trim: true },
     fullName: { type: String, required: true, trim: true },
     dob: { type: Date },

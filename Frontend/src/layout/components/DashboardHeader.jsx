@@ -2,11 +2,21 @@ function DashboardHeader({
   currentUserName,
   isUserMenuOpen,
   onToggleUserMenu,
+  isNotificationOpen,
+  onToggleNotification,
   onLogout,
+  onChangePassword,
   userMenuRef,
+  notificationRef,
+  showNotificationBell = false,
+  unreadNotificationCount = 0,
+  notifications = [],
+  onNotificationClick,
   userMenuLabel,
   showPersonalInfo = false,
   onPersonalInfo,
+  showCurriculumButton = false,
+  onOpenCurriculum,
 }) {
   return (
     <header className="dashboard-header">
@@ -19,7 +29,54 @@ function DashboardHeader({
         <div className="university-name">Trường Đại học ABC</div>
       </div>
 
-      <div className="user-menu" ref={userMenuRef}>
+      <div className="header-actions">
+        {showCurriculumButton && (
+          <button type="button" className="header-action-button" onClick={onOpenCurriculum}>
+            Xem chương trình đào tạo
+          </button>
+        )}
+
+        {showNotificationBell && (
+          <div className="notification-menu" ref={notificationRef}>
+            <button
+              type="button"
+              className="notification-trigger"
+              aria-expanded={isNotificationOpen}
+              aria-haspopup="menu"
+              onClick={onToggleNotification}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 2a7 7 0 0 0-7 7v3.9L3.4 15a1 1 0 0 0 .8 1.6H19.8a1 1 0 0 0 .8-1.6L19 12.9V9a7 7 0 0 0-7-7Zm0 20a3.2 3.2 0 0 1-3-2h6a3.2 3.2 0 0 1-3 2Z" />
+              </svg>
+              {unreadNotificationCount > 0 && <span className="notification-dot" aria-hidden="true" />}
+            </button>
+
+            {isNotificationOpen && (
+              <div className="notification-dropdown" role="menu">
+                <p className="notification-title">{unreadNotificationCount} thông báo mới</p>
+                <div className="notification-list">
+                  {notifications.length ? (
+                    notifications.map((item) => (
+                      <button
+                        key={item._id}
+                        type="button"
+                        className={`notification-item${item.isNew ? ' is-new' : ''}`}
+                        onClick={() => onNotificationClick?.(item)}
+                      >
+                        <strong>{item.title}</strong>
+                        <span>{item.content}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="notification-empty">Chưa có thông báo.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="user-menu" ref={userMenuRef}>
         <button
           type="button"
           className="user-menu-trigger"
@@ -40,7 +97,7 @@ function DashboardHeader({
                 Thông tin cá nhân
               </button>
             )}
-            <button type="button" className="menu-button" role="menuitem">
+            <button type="button" className="menu-button" role="menuitem" onClick={onChangePassword}>
               Đổi mật khẩu
             </button>
             <button
@@ -53,6 +110,7 @@ function DashboardHeader({
             </button>
           </div>
         )}
+        </div>
       </div>
     </header>
   )

@@ -37,6 +37,10 @@ export const useDashboardShell = () => {
     setIsUserMenuOpen((prev) => !prev)
   }, [])
 
+  const closeUserMenu = useCallback(() => {
+    setIsUserMenuOpen(false)
+  }, [])
+
   const toggleSidebar = useCallback(() => {
     setIsSidebarCollapsed((prev) => !prev)
   }, [])
@@ -58,6 +62,7 @@ export const useDashboardShell = () => {
     setActiveView,
     toggleSidebar,
     toggleUserMenu,
+    closeUserMenu,
     handleStudentChanged,
     handleTeacherChanged,
   }

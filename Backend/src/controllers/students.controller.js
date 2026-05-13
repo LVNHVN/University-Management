@@ -54,6 +54,9 @@ const handleCreateStudent = async (req, res, next) => {
     const student = await createStudent(payload);
     return res.status(201).json({ success: true, student });
   } catch (error) {
+    if (error.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     if (error.status === 409) {
       return res.status(409).json({ success: false, message: error.message });
     }
@@ -76,6 +79,9 @@ const handleUpdateStudent = async (req, res, next) => {
     const student = await updateStudent(req.params.id, payload);
     return res.json({ success: true, student });
   } catch (error) {
+    if (error.status === 400) {
+      return res.status(400).json({ success: false, message: error.message });
+    }
     if (error.status === 404) {
       return res.status(404).json({ success: false, message: error.message });
     }

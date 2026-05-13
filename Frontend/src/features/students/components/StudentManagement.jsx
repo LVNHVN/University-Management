@@ -25,6 +25,11 @@ function StudentManagement({ onStudentChanged }) {
     studentImportPreview,
     isStudentImportCommitting,
     studentImportSuccess,
+    availableCurriculums,
+    curriculumPickerKeyword,
+    handleCurriculumPickerKeywordChange,
+    handleCurriculumPickerKeywordSelect,
+    handleCurriculumPickerIdChange,
     openStudentImportModal,
     closeStudentImportModal,
     handleStudentSearchSubmit,
@@ -86,6 +91,11 @@ function StudentManagement({ onStudentChanged }) {
       studentImportPreview={studentImportPreview}
       isStudentImportCommitting={isStudentImportCommitting}
       studentImportSuccess={studentImportSuccess}
+      availableCurriculums={availableCurriculums}
+      curriculumPickerKeyword={curriculumPickerKeyword}
+      onCurriculumPickerKeywordChange={handleCurriculumPickerKeywordChange}
+      onCurriculumPickerKeywordSelect={handleCurriculumPickerKeywordSelect}
+      onCurriculumPickerIdChange={handleCurriculumPickerIdChange}
       onStartEditing={handleStartEditing}
       onCancelEditing={handleCancelEditing}
       onOpenStudentAccountModal={openStudentAccountModal}

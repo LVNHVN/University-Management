@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { formatDateForDisplay, parseDisplayDateToIso } from '../../../shared/utils/date'
 import { STUDENT_INITIAL_FORM } from '../constants/studentConstants'
+import { fetchCurriculums } from '../../curriculum/services/curriculumService'
 import {
   commitStudentsImport,
   createStudent,
@@ -38,7 +39,23 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
   const [studentImportPreview, setStudentImportPreview] = useState(null)
   const [isStudentImportCommitting, setIsStudentImportCommitting] = useState(false)
   const [studentImportSuccess, setStudentImportSuccess] = useState(null)
+  const [availableCurriculums, setAvailableCurriculums] = useState([])
+  const [curriculumPickerKeyword, setCurriculumPickerKeyword] = useState('')
+  const [originalCurriculumPickerKeyword, setOriginalCurriculumPickerKeyword] = useState('')
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
+
+  const getCurriculumLabel = useCallback((curriculumId, fallback = '') => {
+    if (!curriculumId) {
+      return fallback
+    }
+
+    const curriculum = availableCurriculums.find((item) => String(item._id) === String(curriculumId))
+    if (!curriculum) {
+      return fallback
+    }
+
+    return `${curriculum.curriculumCode} - ${curriculum.name}`
+  }, [availableCurriculums])
 
   const loadStudents = useCallback(async (keyword = '') => {
     setIsStudentsLoading(true)
@@ -58,6 +75,20 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
       setStudents([])
     } finally {
       setIsStudentsLoading(false)
+    }
+  }, [])
+
+  const loadCurriculums = useCallback(async () => {
+    try {
+      const payload = await fetchCurriculums()
+
+      if (!payload?.success) {
+        throw new Error('Không tải được danh sách chương trình đào tạo.')
+      }
+
+      setAvailableCurriculums(Array.isArray(payload.curriculums) ? payload.curriculums : [])
+    } catch {
+      setAvailableCurriculums([])
     }
   }, [])
 
@@ -106,23 +137,31 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     setStudentForm(STUDENT_INITIAL_FORM)
     setStudentFormErrors({})
     setStudentFormNotice('')
+    setOriginalStudentForm(null)
+    setCurriculumPickerKeyword('')
+    setOriginalCurriculumPickerKeyword('')
     setIsStudentModalOpen(true)
-  }, [])
+    loadCurriculums()
+  }, [loadCurriculums])
 
   const openStudentDetailModal = useCallback(async (studentId) => {
     setIsStudentModalOpen(true)
     setStudentModalMode('detail')
     setSelectedStudentId(studentId)
     setStudentFormNotice('Đang tải thông tin sinh viên...')
+    setOriginalStudentForm(null)
+    setOriginalCurriculumPickerKeyword('')
 
     try {
-      const payload = await fetchStudentDetail(studentId)
+      const [payload] = await Promise.all([fetchStudentDetail(studentId), loadCurriculums()])
 
       if (!payload?.success || !payload.student) {
         throw new Error('Không tải được thông tin sinh viên.')
       }
 
       const student = payload.student
+      const curriculumId = student.curriculumId?._id ? String(student.curriculumId._id) : String(student.curriculumId || '')
+      const curriculumLabel = getCurriculumLabel(curriculumId, student.major || '')
       setStudentForm({
         studentCode: student.studentCode || '',
         fullName: student.fullName || '',
@@ -131,16 +170,18 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
         nationalIdNumber: student.nationalIdNumber || '',
         phone: student.phone || '',
         address: student.address || '',
-        major: student.major || '',
+        curriculumId,
         academicYear: student.academicYear || '',
       })
+      setCurriculumPickerKeyword(curriculumLabel)
+      setOriginalCurriculumPickerKeyword(curriculumLabel)
       setStudentFormErrors({})
       setStudentFormNotice('')
     } catch (error) {
       const backendMessage = error.response?.data?.message
       setStudentFormNotice(backendMessage || 'Không tải được thông tin sinh viên.')
     }
-  }, [])
+  }, [getCurriculumLabel, loadCurriculums])
 
   const handleStudentFormChange = useCallback((event) => {
     const { name, value } = event.target
@@ -159,6 +200,43 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     })
   }, [])
 
+  const handleCurriculumPickerKeywordChange = useCallback((keyword) => {
+    setCurriculumPickerKeyword(keyword)
+    setStudentForm((prev) => ({
+      ...prev,
+      curriculumId: '',
+    }))
+    setStudentFormErrors((prev) => {
+      if (!prev.curriculumId) {
+        return prev
+      }
+
+      const next = { ...prev }
+      delete next.curriculumId
+      return next
+    })
+  }, [])
+
+  const handleCurriculumPickerKeywordSelect = useCallback((keyword) => {
+    setCurriculumPickerKeyword(keyword)
+  }, [])
+
+  const handleCurriculumPickerIdChange = useCallback((curriculumId) => {
+    setStudentForm((prev) => ({
+      ...prev,
+      curriculumId,
+    }))
+    setStudentFormErrors((prev) => {
+      if (!prev.curriculumId) {
+        return prev
+      }
+
+      const next = { ...prev }
+      delete next.curriculumId
+      return next
+    })
+  }, [])
+
   const handleStartEditing = useCallback(() => {
     setOriginalStudentForm(studentForm)
     setStudentModalMode('editing')
@@ -168,10 +246,11 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     if (originalStudentForm) {
       setStudentForm(originalStudentForm)
     }
+    setCurriculumPickerKeyword(originalCurriculumPickerKeyword)
     setStudentFormErrors({})
     setStudentFormNotice('')
     setStudentModalMode('detail')
-  }, [originalStudentForm])
+  }, [originalStudentForm, originalCurriculumPickerKeyword])
 
   const handleStudentModalClose = useCallback(() => {
     if (isStudentSaving) {
@@ -181,6 +260,9 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     setIsStudentModalOpen(false)
     setStudentFormErrors({})
     setStudentFormNotice('')
+    setCurriculumPickerKeyword('')
+    setOriginalCurriculumPickerKeyword('')
+    setOriginalStudentForm(null)
   }, [isStudentSaving])
 
   const openStudentAccountModal = useCallback(async (studentId) => {
@@ -299,7 +381,7 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
       phone: studentForm.phone.trim(),
       address: studentForm.address.trim(),
       gender: studentForm.gender.trim(),
-      major: studentForm.major.trim(),
+        curriculumId: studentForm.curriculumId.trim(),
       academicYear: studentForm.academicYear.trim(),
     }
 
@@ -316,6 +398,8 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
 
       setIsStudentModalOpen(false)
       setStudentForm(STUDENT_INITIAL_FORM)
+      setCurriculumPickerKeyword('')
+      setOriginalCurriculumPickerKeyword('')
       await Promise.all([loadStudents(studentSearchKeyword), onStudentChanged?.()])
     } catch (error) {
       const backendMessage = error.response?.data?.message
@@ -455,6 +539,12 @@ export const useStudentManagement = ({ onStudentChanged } = {}) => {
     studentImportPreview,
     isStudentImportCommitting,
     studentImportSuccess,
+    availableCurriculums,
+    curriculumPickerKeyword,
+    setCurriculumPickerKeyword,
+    handleCurriculumPickerKeywordChange,
+    handleCurriculumPickerKeywordSelect,
+    handleCurriculumPickerIdChange,
     openStudentImportModal,
     closeStudentImportModal,
     loadStudents,

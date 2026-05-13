@@ -6,6 +6,6 @@ export const STUDENT_INITIAL_FORM = {
   nationalIdNumber: '',
   phone: '',
   address: '',
-  major: '',
+  curriculumId: '',
   academicYear: '',
 }

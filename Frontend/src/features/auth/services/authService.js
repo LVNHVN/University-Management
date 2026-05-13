@@ -29,3 +29,13 @@ export const fetchProfile = async () => {
   const response = await apiClient.get(`${API_BASE_URL}/api/profile`)
   return response.data
 }
+
+export const changePassword = async ({ oldPassword, newPassword, confirmPassword, captchaToken }) => {
+  const response = await apiClient.post(`${API_BASE_URL}/api/change-password`, {
+    oldPassword,
+    newPassword,
+    confirmPassword,
+    captchaToken,
+  })
+  return response.data
+}

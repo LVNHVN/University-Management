@@ -3,6 +3,7 @@ const {
   listCurriculums,
   createCurriculum,
   getCurriculumDetail,
+  getMyCurriculum,
   updateCurriculum,
   deleteCurriculum,
 } = require('../services/curriculum.service');
@@ -13,7 +14,7 @@ const normalizeCurriculumPayload = (body = {}) => ({
   subjects: Array.isArray(body.subjects)
     ? body.subjects.map((s) => ({
         subjectId: String(s.subjectId || '').trim(),
-        recommendedSemester: Number(s.recommendedSemester),
+        recommendedSemester: s.recommendedSemester ? Number(s.recommendedSemester) : undefined,
       }))
     : [],
 });
@@ -36,8 +37,10 @@ const validateCurriculumPayload = (payload) => {
       return 'Danh sách môn học chứa môn không hợp lệ.';
     }
 
-    if (!Number.isInteger(subject.recommendedSemester) || subject.recommendedSemester <= 0) {
-      return 'Học kỳ khuyến nghị của môn học phải là số nguyên dương.';
+    if (subject.recommendedSemester !== undefined && subject.recommendedSemester !== null) {
+      if (!Number.isInteger(subject.recommendedSemester) || subject.recommendedSemester <= 0) {
+        return 'Học kỳ khuyến nghị của môn học phải là số nguyên dương hoặc để trống.';
+      }
     }
   }
 
@@ -102,6 +105,19 @@ const handleGetCurriculumDetail = async (req, res, next) => {
   }
 };
 
+const handleGetMyCurriculum = async (req, res, next) => {
+  try {
+    const curriculum = await getMyCurriculum(req.user.id, req.user.role);
+    return res.json({ success: true, curriculum });
+  } catch (error) {
+    if (error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+
+    return next(error);
+  }
+};
+
 const handleUpdateCurriculum = async (req, res, next) => {
   const payload = normalizeCurriculumPayload(req.body);
   const validationMessage = validateCurriculumPayload(payload);
@@ -148,6 +164,7 @@ module.exports = {
   handleListCurriculums,
   handleCreateCurriculum,
   handleGetCurriculumDetail,
+  handleGetMyCurriculum,
   handleUpdateCurriculum,
   handleDeleteCurriculum,
 };

@@ -9,7 +9,16 @@
     "atlas:init": "node scripts/init-atlas.js",
     "db:clear": "node scripts/clear-database.js",
     "seed:test-users": "node scripts/seed-test-users.js",
-    "seed:sample-data": "node scripts/seed-sample-students-teachers.js"
+    "seed:sample-data": "node scripts/seed-sample-students-teachers.js",
+    "seed:curriculums": "node scripts/init-atlas.js",
+    "seed:subjects": "node scripts/seed-subjects-from-program.js",
+    "seed:vnit": "node scripts/create-vnit-curriculum.js",
+    "update:vnit": "node scripts/update-vnit-curriculum-from-pdf.js",
+    "seed:full-recovery": "npm run seed:sample-data && npm run seed:curriculums && npm run seed:subjects && npm run link:curriculums && npm run reseed:classes",
+    "link:curriculums": "node scripts/link-students-to-curriculums.js",
+    "reseed:classes": "node scripts/reseed-classes.js",
+    "migrate:student-major": "node scripts/migrate-student-major.js",
+    "check:db": "node scripts/check-database-state.js"
   },
   "keywords": [],
   "author": "",

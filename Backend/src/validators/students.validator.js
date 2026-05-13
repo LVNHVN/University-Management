@@ -1,3 +1,5 @@
+const mongoose = require('mongoose');
+
 const normalizeDatePart = (value) => String(value || '').trim();
 
 const isValidDateParts = (year, month, day) => {
@@ -63,7 +65,7 @@ const normalizeStudentPayload = (body = {}) => ({
   nationalIdNumber: String(body.nationalIdNumber || '').trim().replace(/^'/, ''),
   phone: String(body.phone || '').trim().replace(/^'/, ''),
   address: String(body.address || '').trim(),
-  major: String(body.major || '').trim(),
+  curriculumId: String(body.curriculumId || '').trim(),
   academicYear: String(body.academicYear || '').trim(),
 });
 
@@ -120,8 +122,12 @@ const validateStudentPayload = (payload) => {
     return 'Vui lòng nhập địa chỉ.';
   }
 
-  if (!payload.major) {
-    return 'Vui lòng nhập ngành.';
+  if (!payload.curriculumId) {
+    return 'Vui lòng chọn chương trình đào tạo.';
+  }
+
+  if (!mongoose.isValidObjectId(payload.curriculumId)) {
+    return 'Chương trình đào tạo không hợp lệ.';
   }
 
   if (!payload.academicYear) {

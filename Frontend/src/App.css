@@ -95,6 +95,60 @@
   outline: none;
 }
 
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 44px;
+}
+
+.login-form .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  margin-top: 0;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--slate-500);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.login-form .password-toggle:hover {
+  background: rgba(31, 94, 216, 0.08);
+  color: var(--blue-700);
+  filter: none;
+  transform: translateY(-50%);
+}
+
+.login-form button.password-toggle:hover:not(:disabled),
+.login-form button.password-toggle:active:not(:disabled) {
+  transform: translateY(-50%);
+  filter: none;
+}
+
+.login-form .password-toggle:active {
+  transform: translateY(-50%);
+}
+
+.login-form .password-toggle:focus-visible {
+  outline: 2px solid rgba(46, 111, 255, 0.28);
+  outline-offset: 1px;
+}
+
+.password-toggle svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
 .recaptcha-wrap {
   display: flex;
   justify-content: center;
@@ -128,6 +182,27 @@
 .login-form button:disabled {
   opacity: 0.72;
   cursor: not-allowed;
+}
+
+.change-password-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.change-password-actions button {
+  flex: 1;
+}
+
+.change-password-actions .ghost {
+  background: #ffffff;
+  color: var(--slate-700);
+  border: 1px solid var(--slate-300);
+}
+
+.change-password-actions .ghost:hover:not(:disabled) {
+  border-color: var(--blue-700);
+  color: var(--blue-900);
+  transform: translateY(-1px);
 }
 
 .notice {
@@ -187,8 +262,127 @@
   font-weight: 700;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-action-button {
+  height: 36px;
+  border: 1px solid #c8dcff;
+  background: #eff5ff;
+  color: #1e40af;
+  border-radius: 10px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.header-action-button:hover {
+  background: #e4efff;
+}
+
+.notification-menu,
 .user-menu {
   position: relative;
+}
+
+.notification-trigger {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid #dbe8ff;
+  background: #f8fbff;
+  color: #1f5ed8;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.notification-trigger svg {
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #dc2626;
+  border: 2px solid #ffffff;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(360px, 92vw);
+  max-height: 420px;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid #d4d4d4;
+  border-radius: 12px;
+  box-shadow: 0 14px 24px rgba(15, 45, 102, 0.12);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  z-index: 4;
+}
+
+.notification-title {
+  margin: 0;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.notification-list {
+  display: grid;
+  gap: 0;
+  overflow-y: auto;
+}
+
+.notification-item {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  background: #ffffff;
+  text-align: left;
+  padding: 10px 12px;
+  display: grid;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.notification-item strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.notification-item span {
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-item.is-new {
+  background: #f8fbff;
+}
+
+.notification-empty {
+  margin: 0;
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
 }
 
 .user-menu-trigger {
@@ -706,6 +900,29 @@
   border-bottom: 1px solid #eef2ff;
   text-align: left;
   font-size: 14px;
+
+.curriculum-filter-row th {
+  background: #ffffff;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.curriculum-filter-row input {
+  width: 100%;
+  min-width: 90px;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.curriculum-subject-row {
+  cursor: pointer;
+}
+
+.curriculum-subject-row:hover {
+  background: #f8fbff;
+}
 }
 
 .student-table th {
@@ -938,6 +1155,75 @@
   background: #f8fbff;
   color: #1e293b;
   font-size: 14px;
+}
+
+.notification-read-modal {
+  width: min(100%, 680px);
+}
+
+.notification-read-content {
+  display: grid;
+  gap: 10px;
+}
+
+.notification-read-content h4 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.notification-read-content p {
+  margin: 0;
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.notification-read-divider {
+  border: none;
+  border-top: 1px solid #e2e8f0;
+  margin: 4px 0;
+}
+
+.notification-panel {
+  border: 1px solid #dbe8ff;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px;
+}
+
+.notification-target {
+  margin: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.notification-target legend {
+  padding: 0 4px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.notification-target-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.notification-target-option input[type='checkbox'] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
 }
 
 .modal-actions {

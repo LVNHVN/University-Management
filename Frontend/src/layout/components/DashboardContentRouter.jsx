@@ -4,6 +4,7 @@ import TeacherManagement from '../../features/teachers/components/TeacherManagem
 import SubjectManagement from '../../features/subjects/components/SubjectManagement'
 import CurriculumManagement from '../../features/curriculum/components/CurriculumManagement'
 import ClassManagement from '../../features/classes/components/ClassManagement'
+import NotificationManagement from '../../features/notifications/components/NotificationManagement'
 import { NAV_ITEMS } from '../../shared/constants/navigation'
 
 function DashboardContentRouter({ activeView, dashboardRefreshVersion, onStudentChanged, onTeacherChanged }) {
@@ -29,6 +30,10 @@ function DashboardContentRouter({ activeView, dashboardRefreshVersion, onStudent
 
   if (activeView === 'classes') {
     return <ClassManagement />
+  }
+
+  if (activeView === 'notifications') {
+    return <NotificationManagement />
   }
 
   const selected = NAV_ITEMS.find((item) => item.key === activeView)

@@ -39,8 +39,8 @@ export const validateStudentForm = (studentForm, parseDisplayDateToIso) => {
     errors.address = 'Vui lòng nhập địa chỉ.'
   }
 
-  if (!studentForm.major.trim()) {
-    errors.major = 'Vui lòng nhập ngành.'
+  if (!studentForm.curriculumId.trim()) {
+    errors.curriculumId = 'Vui lòng chọn chương trình đào tạo.'
   }
 
   if (!studentForm.academicYear.trim()) {

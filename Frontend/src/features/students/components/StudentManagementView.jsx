@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import ConfirmDialog from '../../../shared/components/ConfirmDialog'
 
 function StudentManagementView({
@@ -34,6 +35,11 @@ function StudentManagementView({
   studentImportPreview,
   isStudentImportCommitting,
   studentImportSuccess,
+  availableCurriculums,
+  curriculumPickerKeyword,
+  onCurriculumPickerKeywordChange,
+  onCurriculumPickerKeywordSelect,
+  onCurriculumPickerIdChange,
   onCommitStudentsImport,
   onCloseStudentImportPreview,
   onCloseStudentImportSuccess,
@@ -47,11 +53,30 @@ function StudentManagementView({
   onConfirmDialogClose,
 }) {
   const isViewOnly = studentModalMode === 'detail'
+  const [isCurriculumOptionsOpen, setIsCurriculumOptionsOpen] = useState(false)
   const roleLabelMap = {
     student: 'Sinh viên',
     teacher: 'Giảng viên',
     admin: 'Quản trị viên',
   }
+
+  const filteredAvailableCurriculums = availableCurriculums.filter((curriculum) => {
+    const keyword = curriculumPickerKeyword.trim().toLowerCase()
+
+    if (!keyword) {
+      return true
+    }
+
+    const curriculumCode = String(curriculum.curriculumCode || '').toLowerCase()
+    const curriculumName = String(curriculum.name || '').toLowerCase()
+    return curriculumCode.includes(keyword) || curriculumName.includes(keyword)
+  })
+
+  useEffect(() => {
+    if (!isStudentModalOpen) {
+      setIsCurriculumOptionsOpen(false)
+    }
+  }, [isStudentModalOpen])
 
   const handleImportInputChange = (event) => {
     const selectedFile = event.target.files?.[0]
@@ -62,6 +87,12 @@ function StudentManagementView({
   const handleReopenImportModal = () => {
     onCloseStudentImportPreview()
     onOpenStudentImportModal()
+  }
+
+  const handleCurriculumOptionSelect = (curriculum) => {
+    onCurriculumPickerIdChange(curriculum._id)
+    onCurriculumPickerKeywordSelect(`${curriculum.curriculumCode} - ${curriculum.name}`)
+    setIsCurriculumOptionsOpen(false)
   }
 
   return (
@@ -273,15 +304,42 @@ function StudentManagementView({
               </label>
 
               <label>
-                Ngành học
-                <input
-                  type="text"
-                  name="major"
-                  value={studentForm.major}
-                  onChange={onStudentFormChange}
-                  disabled={isViewOnly}
-                />
-                {studentFormErrors.major && <p className="field-error">{studentFormErrors.major}</p>}
+                Chương trình đào tạo
+                <div className="curriculum-subject-combobox">
+                  <input
+                    type="text"
+                    value={curriculumPickerKeyword}
+                    onChange={(event) => {
+                      onCurriculumPickerKeywordChange(event.target.value)
+                      setIsCurriculumOptionsOpen(true)
+                    }}
+                    onFocus={() => setIsCurriculumOptionsOpen(true)}
+                    onBlur={() => {
+                      window.setTimeout(() => setIsCurriculumOptionsOpen(false), 120)
+                    }}
+                    placeholder="Chọn chương trình đào tạo"
+                    disabled={isViewOnly}
+                  />
+
+                  {!isViewOnly && isCurriculumOptionsOpen && filteredAvailableCurriculums.length > 0 && (
+                    <div className="curriculum-subject-options" role="listbox">
+                      {filteredAvailableCurriculums.map((curriculum) => (
+                        <button
+                          key={curriculum._id}
+                          type="button"
+                          className="curriculum-subject-option"
+                          onMouseDown={(event) => {
+                            event.preventDefault()
+                            handleCurriculumOptionSelect(curriculum)
+                          }}
+                        >
+                          {curriculum.curriculumCode} - {curriculum.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {studentFormErrors.curriculumId && <p className="field-error">{studentFormErrors.curriculumId}</p>}
               </label>
 
               <label>
@@ -342,7 +400,8 @@ function StudentManagementView({
 
             <div className="import-helper-block">
               <p className="student-form-notice import-helper-note">
-                Dùng đúng header chuẩn của hệ thống. Chấp nhận file .csv, .xlsx và .xls.
+                Dùng đúng header chuẩn của hệ thống. Cột chương trình đào tạo phải là Mã chương trình đào tạo để đối chiếu với danh sách thật.
+                Chấp nhận file .csv, .xlsx và .xls.
                 <br />
                 Lưu ý: xóa dòng dữ liệu mẫu trước khi import vào hệ thống.
               </p>

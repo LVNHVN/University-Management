@@ -1,5 +1,6 @@
 const Curriculum = require('../../Models/Curriculum');
 const Subject = require('../../Models/Subject');
+const Student = require('../../Models/Student');
 
 const normalizeSubjectsWithCredits = async (subjects) => {
   if (!subjects.length) {
@@ -66,9 +67,30 @@ const listCurriculums = async (keyword) => {
   }));
 };
 
+const mapCurriculumDetail = (curriculum) => ({
+  _id: curriculum._id,
+  curriculumCode: curriculum.curriculumCode,
+  name: curriculum.name,
+  totalCredits: Number.isFinite(curriculum.totalCredits) ? curriculum.totalCredits : 0,
+  subjects: Array.isArray(curriculum.subjects)
+    ? curriculum.subjects
+        .filter((item) => item.subjectId)
+        .map((item) => ({
+          subjectId: item.subjectId._id,
+          subjectCode: item.subjectId.subjectCode,
+          name: item.subjectId.name,
+          department: item.subjectId.department,
+          credits: item.subjectId.credits,
+          finalWeight: item.subjectId.finalWeight,
+          syllabus: item.subjectId.syllabus,
+          recommendedSemester: item.recommendedSemester,
+        }))
+    : [],
+});
+
 const getCurriculumDetail = async (id) => {
   const curriculum = await Curriculum.findById(id)
-    .populate('subjects.subjectId', 'subjectCode name credits')
+    .populate('subjects.subjectId', 'subjectCode name department credits finalWeight syllabus')
     .lean();
 
   if (!curriculum) {
@@ -77,23 +99,41 @@ const getCurriculumDetail = async (id) => {
     throw error;
   }
 
-  return {
-    _id: curriculum._id,
-    curriculumCode: curriculum.curriculumCode,
-    name: curriculum.name,
-    totalCredits: Number.isFinite(curriculum.totalCredits) ? curriculum.totalCredits : 0,
-    subjects: Array.isArray(curriculum.subjects)
-      ? curriculum.subjects
-          .filter((item) => item.subjectId)
-          .map((item) => ({
-            subjectId: item.subjectId._id,
-            subjectCode: item.subjectId.subjectCode,
-            name: item.subjectId.name,
-            credits: item.subjectId.credits,
-            recommendedSemester: item.recommendedSemester,
-          }))
-      : [],
-  };
+  return mapCurriculumDetail(curriculum);
+};
+
+const getMyCurriculum = async (userId, role) => {
+  if (role !== 'student') {
+    const error = new Error('Bạn không có quyền truy cập chương trình đào tạo cá nhân.');
+    error.status = 403;
+    throw error;
+  }
+
+  const student = await Student.findOne({ userId }).select('_id curriculumId').lean();
+
+  if (!student) {
+    const error = new Error('Không tìm thấy hồ sơ sinh viên.');
+    error.status = 404;
+    throw error;
+  }
+
+  if (!student.curriculumId) {
+    const error = new Error('Sinh viên chưa được gán chương trình đào tạo.');
+    error.status = 404;
+    throw error;
+  }
+
+  const curriculum = await Curriculum.findById(student.curriculumId)
+    .populate('subjects.subjectId', 'subjectCode name department credits finalWeight syllabus')
+    .lean();
+
+  if (!curriculum) {
+    const error = new Error('Không tìm thấy chương trình đào tạo.');
+    error.status = 404;
+    throw error;
+  }
+
+  return mapCurriculumDetail(curriculum);
 };
 
 const updateCurriculum = async (id, payload) => {
@@ -154,6 +194,7 @@ module.exports = {
   listCurriculums,
   createCurriculum,
   getCurriculumDetail,
+  getMyCurriculum,
   updateCurriculum,
   deleteCurriculum,
 };

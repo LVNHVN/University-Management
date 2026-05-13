@@ -3,12 +3,15 @@ const {
 	handleListCurriculums,
 	handleCreateCurriculum,
 	handleGetCurriculumDetail,
+	handleGetMyCurriculum,
 	handleUpdateCurriculum,
 	handleDeleteCurriculum,
 } = require('../controllers/curriculum.controller');
 const { authenticate, authorize } = require('../middleware/authenticate');
 
 const router = Router();
+
+router.get('/my', authenticate, authorize('student'), handleGetMyCurriculum);
 
 router.use(authenticate, authorize('admin'));
 

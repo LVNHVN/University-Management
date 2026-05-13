@@ -30,6 +30,7 @@ function App() {
         currentUserName={currentUserName}
         onLogout={logout}
         userMenuLabel={currentFullName || currentUserName}
+        recaptchaSiteKey={RECAPTCHA_SITE_KEY}
       />
     )
   }
@@ -41,6 +42,7 @@ function App() {
         currentUserName={currentUserName}
         currentFullName={currentFullName}
         onLogout={logout}
+        recaptchaSiteKey={RECAPTCHA_SITE_KEY}
       />
     )
   }

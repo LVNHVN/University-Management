@@ -19,6 +19,11 @@ export const fetchCurriculumDetail = async (curriculumId) => {
   return response.data
 }
 
+export const fetchMyCurriculum = async () => {
+  const response = await apiClient.get(`${API_BASE_URL}/api/curriculum/my`)
+  return response.data
+}
+
 export const updateCurriculum = async (curriculumId, payload) => {
   const response = await apiClient.put(`${API_BASE_URL}/api/curriculum/${curriculumId}`, payload)
   return response.data

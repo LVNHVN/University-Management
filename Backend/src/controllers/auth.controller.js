@@ -1,4 +1,4 @@
-const { verifyRecaptcha, login, getFullName, getProfile, revokeToken } = require('../services/auth.service');
+const { verifyRecaptcha, login, changePassword, getFullName, getProfile, revokeToken } = require('../services/auth.service');
 
 const handleVerifyRecaptcha = async (req, res, next) => {
   const { token } = req.body;
@@ -75,4 +75,27 @@ const handleLogout = async (req, res, next) => {
   }
 };
 
-module.exports = { handleVerifyRecaptcha, handleLogin, handleMe, handleProfile, handleLogout };
+const handleChangePassword = async (req, res, next) => {
+  const { oldPassword, newPassword, confirmPassword, captchaToken } = req.body || {};
+
+  if (!oldPassword || !newPassword || !confirmPassword) {
+    return res.status(400).json({ success: false, message: 'Vui lòng nhập đầy đủ thông tin đổi mật khẩu.' });
+  }
+
+  if (!captchaToken) {
+    return res.status(400).json({ success: false, message: 'Vui lòng xác minh reCAPTCHA.' });
+  }
+
+  try {
+    await verifyRecaptcha(captchaToken);
+    await changePassword({ userId: req.user.id, oldPassword, newPassword, confirmPassword });
+    return res.json({ success: true, message: 'Đổi mật khẩu thành công.' });
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+    return next(error);
+  }
+};
+
+module.exports = { handleVerifyRecaptcha, handleLogin, handleMe, handleProfile, handleLogout, handleChangePassword };

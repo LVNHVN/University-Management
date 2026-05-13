@@ -1,16 +1,69 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import DashboardHeader from './DashboardHeader'
 import UserProfilePage from './UserProfilePage'
 import { useUserPortalShell } from '../hooks/useUserPortalShell'
 import { fetchProfile } from '../../features/auth/services/authService'
+import ChangePasswordPage from '../../features/auth/components/ChangePasswordPage'
+import { fetchMyNotifications, markNotificationAsRead } from '../../features/notifications/services/notificationService'
+import StudentCurriculumPage from '../../features/curriculum/components/StudentCurriculumPage'
 
-function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogout }) {
-  const { isUserMenuOpen, userMenuRef, toggleUserMenu } = useUserPortalShell()
+function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogout, recaptchaSiteKey }) {
+  const {
+    isUserMenuOpen,
+    isNotificationOpen,
+    userMenuRef,
+    notificationRef,
+    toggleUserMenu,
+    closeUserMenu,
+    toggleNotification,
+    closeNotification,
+  } = useUserPortalShell()
   const [profile, setProfile] = useState(null)
   const [isProfileLoading, setIsProfileLoading] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
+  const [selectedNotification, setSelectedNotification] = useState(null)
+  const [isCurriculumOpen, setIsCurriculumOpen] = useState(true)
+
+  const loadNotifications = useCallback(async () => {
+    if (currentRole !== 'teacher' && currentRole !== 'student') {
+      return
+    }
+
+    try {
+      const payload = await fetchMyNotifications()
+      const list = Array.isArray(payload?.notifications) ? payload.notifications : []
+      setNotifications(list)
+      setUnreadNotificationCount(Number(payload?.unreadCount) || 0)
+    } catch {
+      setNotifications([])
+      setUnreadNotificationCount(0)
+    }
+  }, [currentRole])
+
+  useEffect(() => {
+    loadNotifications()
+
+    if (currentRole !== 'teacher' && currentRole !== 'student') {
+      return undefined
+    }
+
+    const intervalId = window.setInterval(() => {
+      loadNotifications()
+    }, 30000)
+
+    return () => {
+      window.clearInterval(intervalId)
+    }
+  }, [currentRole, loadNotifications])
 
   const handleOpenProfile = useCallback(async () => {
+    closeUserMenu()
+    closeNotification()
+    setIsChangePasswordOpen(false)
+    setIsCurriculumOpen(false)
     setIsProfileOpen(true)
     if (profile) return
     setIsProfileLoading(true)
@@ -22,25 +75,111 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     } finally {
       setIsProfileLoading(false)
     }
-  }, [profile])
+  }, [closeNotification, closeUserMenu, profile])
+
+  const handleOpenChangePassword = useCallback(() => {
+    closeUserMenu()
+    closeNotification()
+    setIsCurriculumOpen(false)
+    setIsProfileOpen(false)
+    setIsChangePasswordOpen(true)
+  }, [closeNotification, closeUserMenu])
+
+  const handleOpenCurriculum = useCallback(() => {
+    closeUserMenu()
+    closeNotification()
+    setIsProfileOpen(false)
+    setIsChangePasswordOpen(false)
+    setIsCurriculumOpen(true)
+  }, [closeNotification, closeUserMenu])
+
+  const handleCloseChangePassword = useCallback(() => {
+    setIsChangePasswordOpen(false)
+  }, [])
+
+  const handleNotificationClick = useCallback(async (notification) => {
+    closeNotification()
+    setSelectedNotification(notification)
+
+    if (notification.isNew) {
+      try {
+        await markNotificationAsRead(notification._id)
+      } catch {
+        // Keep UI usable even if read status update fails.
+      }
+
+      setNotifications((prev) => prev.map((item) => (
+        item._id === notification._id
+          ? { ...item, isNew: false, isRead: true }
+          : item
+      )))
+      setUnreadNotificationCount((prev) => Math.max(0, prev - 1))
+    }
+  }, [closeNotification])
+
+  const handleCloseNotificationModal = useCallback(() => {
+    setSelectedNotification(null)
+  }, [])
 
   return (
     <div className="dashboard-page" style={{ display: 'flex', flexDirection: 'column', minHeight: '100svh' }} aria-label={`Cổng thông tin ${currentRole}`}>
       <DashboardHeader
         currentUserName={currentUserName}
         isUserMenuOpen={isUserMenuOpen}
+        isNotificationOpen={isNotificationOpen}
         onToggleUserMenu={toggleUserMenu}
+        onToggleNotification={toggleNotification}
         onLogout={onLogout}
+        onChangePassword={handleOpenChangePassword}
         userMenuRef={userMenuRef}
+        notificationRef={notificationRef}
+        showNotificationBell
+        unreadNotificationCount={unreadNotificationCount}
+        notifications={notifications}
+        onNotificationClick={handleNotificationClick}
         userMenuLabel={currentFullName || currentUserName}
         showPersonalInfo
         onPersonalInfo={handleOpenProfile}
+        showCurriculumButton={currentRole === 'student'}
+        onOpenCurriculum={handleOpenCurriculum}
       />
+      {currentRole === 'student' && isCurriculumOpen && !isProfileOpen && !isChangePasswordOpen && (
+        <StudentCurriculumPage />
+      )}
+      {isChangePasswordOpen && (
+        <ChangePasswordPage
+          siteKey={recaptchaSiteKey}
+          onCancel={handleCloseChangePassword}
+          onSuccess={handleCloseChangePassword}
+        />
+      )}
       {isProfileOpen && (
         <UserProfilePage
           profile={profile}
           isLoading={isProfileLoading}
         />
+      )}
+
+      {selectedNotification && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card notification-read-modal">
+            <div className="modal-header">
+              <h3>Chi tiết thông báo</h3>
+              <button type="button" className="modal-close" onClick={handleCloseNotificationModal}>×</button>
+            </div>
+            <hr className="notification-read-divider" />
+
+            <div className="notification-read-content">
+              <h4>{selectedNotification.title}</h4>
+              <hr className="notification-read-divider" />
+              <p>{selectedNotification.content}</p>
+            </div>
+
+            <div className="modal-actions full-width">
+              <button type="button" className="ghost" onClick={handleCloseNotificationModal}>Đóng</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

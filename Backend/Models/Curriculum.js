@@ -12,7 +12,7 @@ const curriculumSchema = new mongoose.Schema(
           ref: 'Subject',
           required: true,
         },
-        recommendedSemester: { type: Number, required: true, min: 1 },
+        recommendedSemester: { type: Number, min: 1 },
       },
     ],
   },

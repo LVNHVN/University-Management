@@ -1,6 +1,7 @@
 const Student = require('../../Models/Student');
 const User = require('../../Models/User');
 const Teacher = require('../../Models/Teacher');
+const Curriculum = require('../../Models/Curriculum');
 const { buildStudentUsername } = require('../utils/username');
 const { checkDuplicateIdentityAcrossStudentsAndTeachers } = require('../utils/duplicateIdentity');
 const { getDuplicateKeyMessage } = require('../utils/duplicateKey');
@@ -16,7 +17,7 @@ const STUDENT_IMPORT_COLUMNS = [
   'nationalIdNumber',
   'phone',
   'address',
-  'major',
+  'curriculumCode',
   'academicYear',
 ];
 
@@ -28,7 +29,7 @@ const STUDENT_IMPORT_HEADERS_VI = [
   'Số căn cước công dân',
   'Số điện thoại',
   'Địa chỉ',
-  'Ngành học',
+  'Mã chương trình đào tạo',
   'Khóa học',
 ];
 
@@ -54,6 +55,20 @@ const mapRecordByHeaders = (record = {}, expectedColumns, expectedHeaders) => {
   }, {});
 };
 
+const resolveCurriculumById = async (curriculumId) => {
+  const curriculum = await Curriculum.findById(curriculumId)
+    .select('_id curriculumCode name')
+    .lean();
+
+  if (!curriculum) {
+    const error = new Error('Chương trình đào tạo không tồn tại trong hệ thống.');
+    error.status = 400;
+    throw error;
+  }
+
+  return curriculum;
+};
+
 const listStudents = async (keyword) => {
   const filter = keyword
     ? {
@@ -66,12 +81,14 @@ const listStudents = async (keyword) => {
 
   return Student.find(filter)
     .sort({ studentCode: 1 })
-    .select('studentCode fullName dob gender phone address major academicYear nationalIdNumber userId');
+    .select('studentCode fullName dob gender phone address major curriculumId academicYear nationalIdNumber userId')
+    .populate('curriculumId', 'curriculumCode name');
 };
 
 const getStudentById = async (id) => {
   const student = await Student.findById(id)
-    .select('studentCode fullName dob gender phone address major academicYear nationalIdNumber userId');
+    .select('studentCode fullName dob gender phone address major curriculumId academicYear nationalIdNumber userId')
+    .populate('curriculumId', 'curriculumCode name');
 
   if (!student) {
     const error = new Error('Không tìm thấy sinh viên.');
@@ -109,6 +126,8 @@ const createStudent = async (payload) => {
     throw error;
   }
 
+  const curriculum = await resolveCurriculumById(payload.curriculumId);
+
   const createdUser = await User.create({
     username,
     password: DEFAULT_ACCOUNT_PASSWORD,
@@ -126,7 +145,8 @@ const createStudent = async (payload) => {
       nationalIdNumber: payload.nationalIdNumber,
       phone: payload.phone,
       address: payload.address,
-      major: payload.major,
+      curriculumId: curriculum._id,
+      major: curriculum.name,
       academicYear: payload.academicYear,
     });
 
@@ -170,6 +190,8 @@ const updateStudent = async (id, payload) => {
     throw error;
   }
 
+  const curriculum = await resolveCurriculumById(payload.curriculumId);
+
   const student = await Student.findByIdAndUpdate(
     id,
     {
@@ -180,7 +202,8 @@ const updateStudent = async (id, payload) => {
       nationalIdNumber: payload.nationalIdNumber,
       phone: payload.phone,
       address: payload.address,
-      major: payload.major,
+      curriculumId: curriculum._id,
+      major: curriculum.name,
       academicYear: payload.academicYear,
     },
     { new: true, runValidators: true }
@@ -232,10 +255,28 @@ const validateAndParseStudentsCsv = async (fileBuffer, fileMeta = {}) => {
   const seenStudentCodes = new Map();
   const seenNationalIds = new Map();
   const seenPhones = new Map();
+  const normalizedRows = records.map((row) => ({
+    ...row,
+    curriculumCode: String(row.curriculumCode || '').trim(),
+  }));
 
-  records.forEach((row, index) => {
+  const curriculumCodes = [...new Set(normalizedRows.map((row) => row.curriculumCode).filter(Boolean))];
+  const curricula = curriculumCodes.length
+    ? await Curriculum.find({ curriculumCode: { $in: curriculumCodes } })
+        .select('_id curriculumCode name')
+        .lean()
+    : [];
+  const curriculumByCode = new Map(curricula.map((item) => [item.curriculumCode, item]));
+
+  normalizedRows.forEach((row, index) => {
     const rowNumber = index + 2;
-    const payload = normalizeStudentPayload(row);
+    const curriculum = curriculumByCode.get(row.curriculumCode);
+    if (!curriculum) {
+      errors.push({ rowNumber, message: 'Mã chương trình đào tạo không tồn tại trong hệ thống.' });
+      return;
+    }
+
+    const payload = normalizeStudentPayload({ ...row, curriculumId: curriculum._id });
     const validationMessage = validateStudentPayload(payload);
 
     if (validationMessage) {
@@ -261,7 +302,14 @@ const validateAndParseStudentsCsv = async (fileBuffer, fileMeta = {}) => {
     seenStudentCodes.set(payload.studentCode, rowNumber);
     seenNationalIds.set(payload.nationalIdNumber, rowNumber);
     seenPhones.set(payload.phone, rowNumber);
-    validRows.push({ rowNumber, ...payload });
+    validRows.push({
+      rowNumber,
+      ...payload,
+      curriculumId: curriculum._id,
+      curriculumCode: curriculum.curriculumCode,
+      curriculumName: curriculum.name,
+      major: curriculum.name,
+    });
   });
 
   if (validRows.length > 0) {
@@ -361,10 +409,11 @@ const batchCreateStudentsFromValidated = async (validRows) => {
         studentId: student._id,
         studentCode: student.studentCode,
         fullName: student.fullName,
+        curriculumId: student.curriculumId,
       });
     } catch (error) {
       const message =
-        error.status === 409
+        error.status === 400 || error.status === 409
           ? error.message
           : error.code === 11000
             ? getDuplicateKeyMessage(error)
