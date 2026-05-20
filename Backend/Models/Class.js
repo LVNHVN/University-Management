@@ -13,7 +13,11 @@ const classSchema = new mongoose.Schema(
       ref: 'Teacher',
       required: true,
     },
-    semester: { type: String, required: true, trim: true },
+    semesterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Semester',
+      required: true,
+    },
     studentCount: { type: Number, required: true, min: 0 },
     dayOfWeek: { type: Number, required: true, min: 1, max: 7 },
     startTime: { type: String, required: true, trim: true },

@@ -7,7 +7,11 @@ const tuitionSchema = new mongoose.Schema(
       ref: 'Student',
       required: true,
     },
-    semester: { type: String, required: true, trim: true },
+    semesterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Semester',
+      required: true,
+    },
     totalAmount: { type: mongoose.Schema.Types.Decimal128, required: true },
     status: { type: String, required: true, enum: ['Paid', 'Unpaid'] },
     transactionId: { type: String, trim: true },

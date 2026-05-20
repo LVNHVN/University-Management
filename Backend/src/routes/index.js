@@ -6,6 +6,7 @@ const teachersRoutes = require('./teachers.routes');
 const subjectsRoutes = require('./subjects.routes');
 const curriculumRoutes = require('./curriculum.routes');
 const classRoutes = require('./class.routes');
+const semesterRoutes = require('./semester.routes');
 const accountsRoutes = require('./accounts.routes');
 const notificationsRoutes = require('./notifications.routes');
 
@@ -18,6 +19,7 @@ router.use('/teachers', teachersRoutes);
 router.use('/subjects', subjectsRoutes);
 router.use('/curriculum', curriculumRoutes);
 router.use('/classes', classRoutes);
+router.use('/semesters', semesterRoutes);
 router.use('/users', accountsRoutes);
 router.use('/notifications', notificationsRoutes);
 

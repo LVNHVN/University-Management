@@ -900,6 +900,7 @@
   border-bottom: 1px solid #eef2ff;
   text-align: left;
   font-size: 14px;
+}
 
 .curriculum-filter-row th {
   background: #ffffff;
@@ -922,7 +923,6 @@
 
 .curriculum-subject-row:hover {
   background: #f8fbff;
-}
 }
 
 .student-table th {
@@ -959,6 +959,165 @@
 .table-empty {
   text-align: center;
   color: #64748b;
+}
+
+.student-schedule-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+  gap: 14px;
+}
+
+.student-schedule-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 10px;
+}
+
+.student-calendar-card,
+.student-schedule-list-card {
+  border: 1px solid #dbe8ff;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 45, 102, 0.06);
+  padding: 14px;
+}
+
+.student-calendar-header {
+  display: grid;
+  grid-template-columns: 36px 1fr 36px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.student-calendar-header strong {
+  text-align: center;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.student-calendar-nav {
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d4dce8;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.student-calendar-nav:hover {
+  background: #f8fbff;
+}
+
+.student-calendar-today {
+  height: 34px;
+  border: 1px solid #bfd3ff;
+  border-radius: 10px;
+  background: #eff5ff;
+  color: #1f4fc9;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 12px;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.student-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  margin-bottom: 6px;
+}
+
+.student-calendar-weekdays span {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 0;
+}
+
+.student-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.student-calendar-day {
+  height: 44px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  position: relative;
+  color: #1e293b;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.student-calendar-day.is-outside {
+  color: #a0aec0;
+  background: #fbfdff;
+}
+
+.student-calendar-day.is-today {
+  border-color: #8bb0ff;
+}
+
+.student-calendar-day.is-selected {
+  border-color: #1f5ed8;
+  background: #eff5ff;
+  color: #1e40af;
+  font-weight: 700;
+}
+
+.student-calendar-dot {
+  position: absolute;
+  bottom: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #2e6fff;
+  display: block;
+}
+
+.student-schedule-list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.student-schedule-list-header h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.student-schedule-semester-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-schedule-semester-controls label {
+  font-size: 13px;
+  color: #475569;
+}
+
+.student-schedule-semester-controls select {
+  height: 32px;
+  min-width: 150px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0 10px;
+  font-size: 13px;
 }
 
 .modal-overlay {
@@ -1318,6 +1477,24 @@
   .pie-chart-layout {
     grid-template-columns: 1fr;
     justify-items: center;
+  }
+}
+
+@media (max-width: 980px) {
+  .student-schedule-toolbar {
+    justify-content: flex-start;
+  }
+
+  .student-schedule-semester-controls {
+    width: 100%;
+  }
+
+  .student-schedule-semester-controls select {
+    width: 100%;
+  }
+
+  .student-schedule-layout {
+    grid-template-columns: 1fr;
   }
 }
 

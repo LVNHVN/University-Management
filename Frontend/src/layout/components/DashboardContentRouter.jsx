@@ -2,6 +2,7 @@ import OverviewDashboard from '../../features/overview/components/OverviewDashbo
 import StudentManagement from '../../features/students/components/StudentManagement'
 import TeacherManagement from '../../features/teachers/components/TeacherManagement'
 import SubjectManagement from '../../features/subjects/components/SubjectManagement'
+import SemesterManagement from '../../features/semesters/components/SemesterManagement'
 import CurriculumManagement from '../../features/curriculum/components/CurriculumManagement'
 import ClassManagement from '../../features/classes/components/ClassManagement'
 import NotificationManagement from '../../features/notifications/components/NotificationManagement'
@@ -22,6 +23,10 @@ function DashboardContentRouter({ activeView, dashboardRefreshVersion, onStudent
 
   if (activeView === 'subjects') {
     return <SubjectManagement />
+  }
+
+  if (activeView === 'semesters') {
+    return <SemesterManagement />
   }
 
   if (activeView === 'curriculum') {

@@ -15,6 +15,8 @@ function DashboardHeader({
   userMenuLabel,
   showPersonalInfo = false,
   onPersonalInfo,
+  showScheduleButton = false,
+  onOpenSchedule,
   showCurriculumButton = false,
   onOpenCurriculum,
 }) {
@@ -30,6 +32,12 @@ function DashboardHeader({
       </div>
 
       <div className="header-actions">
+        {showScheduleButton && (
+          <button type="button" className="header-action-button" onClick={onOpenSchedule}>
+            Thời khóa biểu
+          </button>
+        )}
+
         {showCurriculumButton && (
           <button type="button" className="header-action-button" onClick={onOpenCurriculum}>
             Xem chương trình đào tạo

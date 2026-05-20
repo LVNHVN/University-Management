@@ -2,15 +2,21 @@ const ClassModel = require('../../Models/Class');
 const Tuition = require('../../Models/Tuition');
 const Student = require('../../Models/Student');
 const Teacher = require('../../Models/Teacher');
+const Semester = require('../../Models/Semester');
 const { getLatestSemester } = require('../utils/semester');
 
 const getOverview = async (requestedSemester) => {
-  const [classSemesters, tuitionSemesters] = await Promise.all([
-    ClassModel.distinct('semester'),
-    Tuition.distinct('semester'),
-  ]);
+  const semesterCodes = await Semester.distinct('code');
 
-  const targetSemester = requestedSemester || getLatestSemester([...classSemesters, ...tuitionSemesters]);
+  const targetSemester = requestedSemester && semesterCodes.includes(requestedSemester)
+    ? requestedSemester
+    : getLatestSemester(semesterCodes);
+
+  const targetSemesterDoc = await Semester.findOne({ code: targetSemester }).select('_id').lean();
+  const targetSemesterId = targetSemesterDoc?._id;
+  const semesterFilter = targetSemesterId
+    ? { $or: [{ semesterId: targetSemesterId }, { semester: targetSemester }] }
+    : { semester: targetSemester };
 
   const [
     totalStudents,
@@ -22,9 +28,9 @@ const getOverview = async (requestedSemester) => {
   ] = await Promise.all([
     Student.countDocuments(),
     Teacher.countDocuments(),
-    ClassModel.countDocuments({ semester: targetSemester }),
+    ClassModel.countDocuments(semesterFilter),
     Tuition.aggregate([
-      { $match: { semester: targetSemester, status: 'Paid' } },
+      { $match: { ...semesterFilter, status: 'Paid' } },
       { $group: { _id: null, total: { $sum: { $toDouble: '$totalAmount' } } } },
     ]),
     Student.aggregate([
@@ -43,7 +49,7 @@ const getOverview = async (requestedSemester) => {
       { $sort: { count: -1, _id: 1 } },
     ]),
     Tuition.aggregate([
-      { $match: { semester: targetSemester } },
+      { $match: semesterFilter },
       { $group: { _id: '$status', count: { $sum: 1 } } },
     ]),
   ]);

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import ConfirmDialog from '../../../shared/components/ConfirmDialog'
+import ClassStudentListModal from './ClassStudentListModal'
 
 function ClassManagementView({
   classSearchKeyword,
@@ -30,6 +31,7 @@ function ClassManagementView({
   onSubjectPickerKeywordSelect,
   onSubjectPickerIdChange,
   filteredAvailableTeachers,
+  availableSemesters,
   teacherPickerKeyword,
   teacherPickerId,
   onTeacherPickerKeywordChange,
@@ -43,6 +45,7 @@ function ClassManagementView({
 }) {
   const [isSubjectOptionsOpen, setIsSubjectOptionsOpen] = useState(false)
   const [isTeacherOptionsOpen, setIsTeacherOptionsOpen] = useState(false)
+  const [isStudentListOpen, setIsStudentListOpen] = useState(false)
 
   const handleSubjectOptionSelect = (subject) => {
     onSubjectPickerIdChange(subject._id)
@@ -252,34 +255,30 @@ function ClassManagementView({
 
               <label className="full-width">
                 Học kỳ
-                <input
-                  type="text"
+                <select
                   name="semester"
                   value={classForm.semester}
                   onChange={onClassFormChange}
-
                   disabled={isViewOnly || isClassSaving}
-                />
+                >
+                  <option value="" disabled>-- Chọn học kỳ --</option>
+                  {availableSemesters.map((semester) => (
+                    <option key={semester._id} value={semester.code}>
+                      {semester.name}
+                    </option>
+                  ))}
+                </select>
                 {classFormErrors.semester && (
                   <p className="field-error">{classFormErrors.semester}</p>
                 )}
               </label>
 
-              <label className="full-width">
-                Sĩ số
-                <input
-                  type="number"
-                  name="studentCount"
-                  value={classForm.studentCount === 0 ? '' : classForm.studentCount}
-                  onChange={onClassFormChange}
-                  min={0}
-                  placeholder=""
-                  disabled={isViewOnly || isClassSaving}
-                />
-                {classFormErrors.studentCount && (
-                  <p className="field-error">{classFormErrors.studentCount}</p>
-                )}
-              </label>
+              {isViewOnly && (
+                <label className="full-width">
+                  Sĩ số
+                  <input type="text" value={classForm.studentCount ?? 0} disabled />
+                </label>
+              )}
 
               <label className="full-width">
                 Thứ học
@@ -366,6 +365,12 @@ function ClassManagementView({
                     <button type="button" onClick={onStartEditing}>
                       Chỉnh sửa thông tin
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsStudentListOpen(true)}
+                    >
+                      Xem danh sách sinh viên
+                    </button>
                     <button type="button" className="ghost" onClick={onClassModalClose}>
                       Đóng
                     </button>
@@ -396,6 +401,13 @@ function ClassManagementView({
         onCancel={onConfirmDialogClose}
         confirmLabel="Xóa"
         isDangerous
+      />
+
+      <ClassStudentListModal
+        classId={classForm._id}
+        classCode={classForm.classCode}
+        isOpen={isStudentListOpen}
+        onClose={() => setIsStudentListOpen(false)}
       />
     </div>
   )

@@ -6,6 +6,7 @@ import { fetchProfile } from '../../features/auth/services/authService'
 import ChangePasswordPage from '../../features/auth/components/ChangePasswordPage'
 import { fetchMyNotifications, markNotificationAsRead } from '../../features/notifications/services/notificationService'
 import StudentCurriculumPage from '../../features/curriculum/components/StudentCurriculumPage'
+import StudentSchedulePage from '../../features/schedule/components/StudentSchedulePage'
 
 function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogout, recaptchaSiteKey }) {
   const {
@@ -26,6 +27,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
   const [selectedNotification, setSelectedNotification] = useState(null)
   const [isCurriculumOpen, setIsCurriculumOpen] = useState(true)
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false)
 
   const loadNotifications = useCallback(async () => {
     if (currentRole !== 'teacher' && currentRole !== 'student') {
@@ -64,6 +66,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     closeNotification()
     setIsChangePasswordOpen(false)
     setIsCurriculumOpen(false)
+    setIsScheduleOpen(false)
     setIsProfileOpen(true)
     if (profile) return
     setIsProfileLoading(true)
@@ -81,8 +84,18 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     closeUserMenu()
     closeNotification()
     setIsCurriculumOpen(false)
+    setIsScheduleOpen(false)
     setIsProfileOpen(false)
     setIsChangePasswordOpen(true)
+  }, [closeNotification, closeUserMenu])
+
+  const handleOpenSchedule = useCallback(() => {
+    closeUserMenu()
+    closeNotification()
+    setIsProfileOpen(false)
+    setIsChangePasswordOpen(false)
+    setIsCurriculumOpen(false)
+    setIsScheduleOpen(true)
   }, [closeNotification, closeUserMenu])
 
   const handleOpenCurriculum = useCallback(() => {
@@ -91,6 +104,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     setIsProfileOpen(false)
     setIsChangePasswordOpen(false)
     setIsCurriculumOpen(true)
+    setIsScheduleOpen(false)
   }, [closeNotification, closeUserMenu])
 
   const handleCloseChangePassword = useCallback(() => {
@@ -140,9 +154,14 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
         userMenuLabel={currentFullName || currentUserName}
         showPersonalInfo
         onPersonalInfo={handleOpenProfile}
+        showScheduleButton={currentRole === 'student'}
+        onOpenSchedule={handleOpenSchedule}
         showCurriculumButton={currentRole === 'student'}
         onOpenCurriculum={handleOpenCurriculum}
       />
+      {currentRole === 'student' && isScheduleOpen && !isProfileOpen && !isChangePasswordOpen && (
+        <StudentSchedulePage />
+      )}
       {currentRole === 'student' && isCurriculumOpen && !isProfileOpen && !isChangePasswordOpen && (
         <StudentCurriculumPage />
       )}

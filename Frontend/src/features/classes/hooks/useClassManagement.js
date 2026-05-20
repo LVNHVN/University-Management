@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClass, fetchClassDetail, fetchClasses, removeClass, updateClass } from '../services/classService'
 import { fetchSubjects } from '../../subjects/services/subjectService'
 import { fetchTeachers } from '../../teachers/services/teacherService'
+import { fetchSemesters } from '../../semesters/services/semesterService'
 
 const CLASS_INITIAL_FORM = {
+  _id: '',
   classCode: '',
   semester: '',
   studentCount: 0,
@@ -41,6 +43,8 @@ export const useClassManagement = () => {
   const [teacherPickerKeyword, setTeacherPickerKeyword] = useState('')
   const [teacherPickerId, setTeacherPickerId] = useState('')
   const [originalTeacherPickerId, setOriginalTeacherPickerId] = useState('')
+
+  const [availableSemesters, setAvailableSemesters] = useState([])
 
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null })
 
@@ -95,12 +99,18 @@ export const useClassManagement = () => {
 
   const loadPickerData = useCallback(async () => {
     try {
-      const [subjectsPayload, teachersPayload] = await Promise.all([fetchSubjects(), fetchTeachers()])
+      const [subjectsPayload, teachersPayload, semestersPayload] = await Promise.all([
+        fetchSubjects(),
+        fetchTeachers(),
+        fetchSemesters(),
+      ])
       setAvailableSubjects(Array.isArray(subjectsPayload?.subjects) ? subjectsPayload.subjects : [])
       setAvailableTeachers(Array.isArray(teachersPayload?.teachers) ? teachersPayload.teachers : [])
+      setAvailableSemesters(Array.isArray(semestersPayload?.semesters) ? semestersPayload.semesters : [])
     } catch {
       setAvailableSubjects([])
       setAvailableTeachers([])
+      setAvailableSemesters([])
     }
   }, [])
 
@@ -153,6 +163,7 @@ export const useClassManagement = () => {
 
         const cls = detailPayload.class
         const formData = {
+          _id: cls._id || '',
           classCode: cls.classCode || '',
           semester: cls.semester || '',
           studentCount: cls.studentCount ?? 0,
@@ -301,7 +312,9 @@ export const useClassManagement = () => {
     }
 
     if (!classForm.semester.trim()) {
-      errors.semester = 'Vui lòng nhập học kỳ.'
+      errors.semester = 'Vui lòng chọn học kỳ.'
+    } else if (!availableSemesters.some((s) => s.code === classForm.semester.trim())) {
+      errors.semester = 'Học kỳ đã chọn không tồn tại trong hệ thống.'
     }
 
     if (!classForm.dayOfWeek) {
@@ -338,7 +351,6 @@ export const useClassManagement = () => {
       subjectId: subjectPickerId,
       teacherId: teacherPickerId,
       semester: classForm.semester.trim(),
-      studentCount: Number(classForm.studentCount) || 0,
       dayOfWeek: classForm.dayOfWeek !== '' ? Number(classForm.dayOfWeek) : null,
       startTime: classForm.startTime.trim(),
       endTime: classForm.endTime.trim(),
@@ -369,7 +381,18 @@ export const useClassManagement = () => {
     } finally {
       setIsClassSaving(false)
     }
-  }, [classForm, subjectPickerId, teacherPickerId, isCreateMode, isEditingMode, selectedClassId, classSearchKeyword, loadClasses, resetPickers])
+  }, [
+    classForm,
+    subjectPickerId,
+    teacherPickerId,
+    isCreateMode,
+    isEditingMode,
+    selectedClassId,
+    classSearchKeyword,
+    loadClasses,
+    resetPickers,
+    availableSemesters,
+  ])
 
   const handleDeleteClass = useCallback(
     (cls) => {
@@ -426,6 +449,7 @@ export const useClassManagement = () => {
     onSubjectPickerKeywordSelect: handleSubjectPickerKeywordSelect,
     onSubjectPickerIdChange: handleSubjectPickerIdChange,
     filteredAvailableTeachers,
+    availableSemesters,
     teacherPickerKeyword,
     teacherPickerId,
     onTeacherPickerKeywordChange: handleTeacherPickerKeywordChange,

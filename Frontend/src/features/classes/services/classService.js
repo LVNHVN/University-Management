@@ -13,6 +13,11 @@ export const fetchClassDetail = async (classId) => {
   return response.data
 }
 
+export const fetchClassStudents = async (classId) => {
+  const response = await apiClient.get(`${API_BASE_URL}/api/classes/${classId}/students`)
+  return response.data
+}
+
 export const createClass = async (payload) => {
   const response = await apiClient.post(`${API_BASE_URL}/api/classes`, payload)
   return response.data
