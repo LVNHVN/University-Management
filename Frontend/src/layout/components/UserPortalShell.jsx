@@ -10,6 +10,38 @@ import StudentSchedulePage from '../../features/schedule/components/StudentSched
 import TeacherSchedulePage from '../../features/schedule/components/TeacherSchedulePage'
 import StudentGradesPage from '../../features/grades/components/StudentGradesPage'
 
+const PORTAL_HASH_PREFIX = '#/portal/'
+
+const normalizePortalView = (view, role) => {
+  if (view === 'profile' || view === 'change-password') {
+    return view
+  }
+
+  if (view === 'schedule') {
+    return 'schedule'
+  }
+
+  if (role === 'student' && (view === 'curriculum' || view === 'grades')) {
+    return view
+  }
+
+  return 'schedule'
+}
+
+const getInitialPortalView = (role) => {
+  if (typeof window === 'undefined') {
+    return 'schedule'
+  }
+
+  const hash = String(window.location.hash || '')
+  if (!hash.startsWith(PORTAL_HASH_PREFIX)) {
+    return 'schedule'
+  }
+
+  const view = hash.slice(PORTAL_HASH_PREFIX.length)
+  return normalizePortalView(view, role)
+}
+
 function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogout, recaptchaSiteKey }) {
   const {
     isUserMenuOpen,
@@ -23,14 +55,46 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
   } = useUserPortalShell()
   const [profile, setProfile] = useState(null)
   const [isProfileLoading, setIsProfileLoading] = useState(false)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
   const [selectedNotification, setSelectedNotification] = useState(null)
-  const [isCurriculumOpen, setIsCurriculumOpen] = useState(false)
-  const [isScheduleOpen, setIsScheduleOpen] = useState(currentRole === 'student' || currentRole === 'teacher')
-  const [isGradesOpen, setIsGradesOpen] = useState(false)
+  const [portalView, setPortalView] = useState(() => getInitialPortalView(currentRole))
+  const isProfileOpen = portalView === 'profile'
+  const isChangePasswordOpen = portalView === 'change-password'
+  const isCurriculumOpen = portalView === 'curriculum'
+  const isScheduleOpen = portalView === 'schedule'
+  const isGradesOpen = portalView === 'grades'
+
+  useEffect(() => {
+    setPortalView((prev) => normalizePortalView(prev, currentRole))
+  }, [currentRole])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+
+    const nextHash = `${PORTAL_HASH_PREFIX}${portalView}`
+    if (window.location.hash !== nextHash) {
+      window.history.replaceState(null, '', nextHash)
+    }
+  }, [portalView])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined
+    }
+
+    const handleHashChange = () => {
+      const nextView = getInitialPortalView(currentRole)
+      setPortalView((prev) => (prev === nextView ? prev : nextView))
+    }
+
+    window.addEventListener('hashchange', handleHashChange)
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange)
+    }
+  }, [currentRole])
 
   const loadNotifications = useCallback(async () => {
     if (currentRole !== 'teacher' && currentRole !== 'student') {
@@ -67,11 +131,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
   const handleOpenProfile = useCallback(async () => {
     closeUserMenu()
     closeNotification()
-    setIsChangePasswordOpen(false)
-    setIsCurriculumOpen(false)
-    setIsScheduleOpen(false)
-    setIsGradesOpen(false)
-    setIsProfileOpen(true)
+    setPortalView('profile')
     if (profile) return
     setIsProfileLoading(true)
     try {
@@ -87,45 +147,29 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
   const handleOpenChangePassword = useCallback(() => {
     closeUserMenu()
     closeNotification()
-    setIsCurriculumOpen(false)
-    setIsScheduleOpen(false)
-    setIsGradesOpen(false)
-    setIsProfileOpen(false)
-    setIsChangePasswordOpen(true)
+    setPortalView('change-password')
   }, [closeNotification, closeUserMenu])
 
   const handleOpenSchedule = useCallback(() => {
     closeUserMenu()
     closeNotification()
-    setIsProfileOpen(false)
-    setIsChangePasswordOpen(false)
-    setIsCurriculumOpen(false)
-    setIsScheduleOpen(true)
-    setIsGradesOpen(false)
+    setPortalView('schedule')
   }, [closeNotification, closeUserMenu])
 
   const handleOpenGrades = useCallback(() => {
     closeUserMenu()
     closeNotification()
-    setIsProfileOpen(false)
-    setIsChangePasswordOpen(false)
-    setIsCurriculumOpen(false)
-    setIsScheduleOpen(false)
-    setIsGradesOpen(true)
+    setPortalView('grades')
   }, [closeNotification, closeUserMenu])
 
   const handleOpenCurriculum = useCallback(() => {
     closeUserMenu()
     closeNotification()
-    setIsProfileOpen(false)
-    setIsChangePasswordOpen(false)
-    setIsCurriculumOpen(true)
-    setIsScheduleOpen(false)
-    setIsGradesOpen(false)
+    setPortalView('curriculum')
   }, [closeNotification, closeUserMenu])
 
   const handleCloseChangePassword = useCallback(() => {
-    setIsChangePasswordOpen(false)
+    setPortalView('schedule')
   }, [])
 
   const handleNotificationClick = useCallback(async (notification) => {
