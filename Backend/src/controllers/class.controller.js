@@ -1,4 +1,8 @@
+const multer = require('multer');
 const mongoose = require('mongoose');
+const Class = require('../../Models/Class');
+const Teacher = require('../../Models/Teacher');
+const { isSupportedImportFile } = require('../utils/importSpreadsheet');
 const {
   createClass,
   listClasses,
@@ -7,7 +11,43 @@ const {
   deleteClass,
   getClassStudents,
   getMySchedule,
+  getMyGrades,
+  getMyGradeSummary,
+  updateStudentGrades,
+  importClassGradesFromFile,
+  getClassAttendanceByDate,
+  updateClassAttendanceByDate,
 } = require('../services/class.service');
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024,
+  },
+});
+
+const ensureTeacherCanAccessClass = async (classId, user) => {
+  if (user?.role !== 'teacher') {
+    return null;
+  }
+
+  const teacher = await Teacher.findOne({ userId: user.id }).select('_id').lean();
+
+  if (!teacher) {
+    const error = new Error('Không tìm thấy hồ sơ giảng viên.');
+    error.status = 404;
+    throw error;
+  }
+
+  const assignedClass = await Class.findOne({ _id: classId, teacherId: teacher._id }).select('_id').lean();
+  if (!assignedClass) {
+    const error = new Error('Bạn không có quyền truy cập lớp này.');
+    error.status = 403;
+    throw error;
+  }
+
+  return teacher;
+};
 
 const normalizeClassPayload = (body = {}) => ({
   classCode: String(body.classCode || '').trim(),
@@ -148,9 +188,128 @@ const handleGetClassStudents = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'ID lớp học không hợp lệ.' });
     }
 
+    await ensureTeacherCanAccessClass(id, req.user);
+
     const data = await getClassStudents(id);
     return res.json({ success: true, data });
   } catch (error) {
+    return next(error);
+  }
+};
+
+const handleUpdateStudentGrades = async (req, res, next) => {
+  try {
+    const { id, enrollmentId } = req.params;
+
+    if (!mongoose.isValidObjectId(id) || !mongoose.isValidObjectId(enrollmentId)) {
+      return res.status(400).json({ success: false, message: 'ID không hợp lệ.' });
+    }
+
+    await ensureTeacherCanAccessClass(id, req.user);
+
+    const gradePayload = {
+      gradeProcess: req.body?.gradeProcess,
+      gradeFinal: req.body?.gradeFinal,
+    };
+
+    const updated = await updateStudentGrades(id, enrollmentId, gradePayload);
+    return res.json({ success: true, grade: updated });
+  } catch (error) {
+    if (error.status === 400 || error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+
+    return next(error);
+  }
+};
+
+const handleImportClassGrades = [
+  upload.single('file'),
+  async (req, res, next) => {
+    try {
+      const { id } = req.params;
+
+      if (!mongoose.isValidObjectId(id)) {
+        return res.status(400).json({ success: false, message: 'ID lớp học không hợp lệ.' });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'Vui lòng tải lên file điểm.' });
+      }
+
+      await ensureTeacherCanAccessClass(id, req.user);
+
+      const fileMeta = {
+        fileName: String(req.file.originalname || ''),
+        mimeType: String(req.file.mimetype || ''),
+      };
+
+      if (!isSupportedImportFile(fileMeta)) {
+        return res.status(400).json({ success: false, message: 'Chỉ hỗ trợ định dạng .csv, .xlsx hoặc .xls ở chức năng này.' });
+      }
+
+      const result = await importClassGradesFromFile(id, req.file.buffer, fileMeta);
+
+      return res.json({
+        success: true,
+        message: `Đã cập nhật điểm cho ${result.summary.updatedRows}/${result.summary.totalRows} dòng.`,
+        ...result,
+      });
+    } catch (error) {
+      if (error.status === 400 || error.status === 403 || error.status === 404) {
+        return res.status(error.status).json({ success: false, message: error.message });
+      }
+
+      return next(error);
+    }
+  },
+];
+
+const handleGetClassAttendance = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const date = String(req.query.date || '').trim();
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'ID lớp học không hợp lệ.' });
+    }
+
+    await ensureTeacherCanAccessClass(id, req.user);
+
+    const data = await getClassAttendanceByDate(id, date);
+    return res.json({ success: true, data });
+  } catch (error) {
+    if (error.status === 400 || error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+
+    return next(error);
+  }
+};
+
+const handleUpdateClassAttendance = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const date = String(req.query.date || '').trim();
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'ID lớp học không hợp lệ.' });
+    }
+
+    await ensureTeacherCanAccessClass(id, req.user);
+
+    const records = Array.isArray(req.body?.records) ? req.body.records : null;
+    if (!records) {
+      return res.status(400).json({ success: false, message: 'Dữ liệu điểm danh không hợp lệ.' });
+    }
+
+    const data = await updateClassAttendanceByDate(id, date, records, req.user.id);
+    return res.json({ success: true, data, message: 'Đã lưu điểm danh thành công.' });
+  } catch (error) {
+    if (error.status === 400 || error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+
     return next(error);
   }
 };
@@ -169,6 +328,33 @@ const handleGetMySchedule = async (req, res, next) => {
   }
 };
 
+const handleGetMyGrades = async (req, res, next) => {
+  try {
+    const requestedSemester = String(req.query.semester || '').trim() || undefined;
+    const grades = await getMyGrades(req.user.id, requestedSemester);
+    return res.json({ success: true, grades });
+  } catch (error) {
+    if (error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+
+    return next(error);
+  }
+};
+
+const handleGetMyGradeSummary = async (req, res, next) => {
+  try {
+    const summary = await getMyGradeSummary(req.user.id);
+    return res.json({ success: true, summary });
+  } catch (error) {
+    if (error.status === 403 || error.status === 404) {
+      return res.status(error.status).json({ success: false, message: error.message });
+    }
+
+    return next(error);
+  }
+};
+
 module.exports = {
   handleListClasses,
   handleCreateClass,
@@ -176,5 +362,11 @@ module.exports = {
   handleUpdateClass,
   handleDeleteClass,
   handleGetClassStudents,
+  handleUpdateStudentGrades,
+  handleImportClassGrades,
+  handleGetClassAttendance,
+  handleUpdateClassAttendance,
   handleGetMySchedule,
+  handleGetMyGrades,
+  handleGetMyGradeSummary,
 };

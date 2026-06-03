@@ -973,6 +973,55 @@
   margin-bottom: 10px;
 }
 
+.student-grade-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.student-grade-mode-switch {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 6px 0 14px;
+}
+
+.student-grade-mode-switch label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.student-grade-search {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.student-grade-search label {
+  font-size: 13px;
+  color: #475569;
+}
+
+.student-grade-search input {
+  height: 32px;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
 .student-calendar-card,
 .student-schedule-list-card {
   border: 1px solid #dbe8ff;
@@ -1490,6 +1539,15 @@
   }
 
   .student-schedule-semester-controls select {
+    width: 100%;
+  }
+
+  .student-grade-search {
+    width: 100%;
+  }
+
+  .student-grade-search input {
+    min-width: 0;
     width: 100%;
   }
 

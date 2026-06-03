@@ -16,7 +16,11 @@ function DashboardHeader({
   showPersonalInfo = false,
   onPersonalInfo,
   showScheduleButton = false,
+  scheduleButtonLabel = 'Thời khóa biểu',
   onOpenSchedule,
+  showGradesButton = false,
+  gradesButtonLabel = 'Bảng điểm',
+  onOpenGrades,
   showCurriculumButton = false,
   onOpenCurriculum,
 }) {
@@ -34,7 +38,13 @@ function DashboardHeader({
       <div className="header-actions">
         {showScheduleButton && (
           <button type="button" className="header-action-button" onClick={onOpenSchedule}>
-            Thời khóa biểu
+            {scheduleButtonLabel}
+          </button>
+        )}
+
+        {showGradesButton && (
+          <button type="button" className="header-action-button" onClick={onOpenGrades}>
+            {gradesButtonLabel}
           </button>
         )}
 

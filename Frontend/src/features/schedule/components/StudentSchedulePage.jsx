@@ -45,7 +45,16 @@ const buildCalendarCells = (viewDate) => {
   return cells
 }
 
-function StudentSchedulePage() {
+function StudentSchedulePage({ mode = 'student', onClassSelect }) {
+  const isTeacherMode = mode === 'teacher'
+  const canOpenClassDetail = !isTeacherMode
+  const [teacherViewMode, setTeacherViewMode] = useState('calendar')
+  const loadingLabel = isTeacherMode ? 'Đang tải lịch dạy...' : 'Đang tải lịch học...'
+  const loadingErrorLabel = isTeacherMode ? 'Không tải được lịch dạy cá nhân.' : 'Không tải được lịch học cá nhân.'
+  const semesterLabel = isTeacherMode ? 'Lịch dạy theo học kỳ' : 'Học kỳ'
+  const listTitlePrefix = isTeacherMode ? 'Lớp dạy ngày' : 'Lớp học ngày'
+  const listAriaLabel = isTeacherMode ? 'Danh sách lớp dạy theo ngày' : 'Danh sách tiết học theo ngày'
+  const classColumnLabel = isTeacherMode ? 'Lớp dạy' : 'Lớp học'
   const today = useMemo(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -58,6 +67,7 @@ function StudentSchedulePage() {
   const [selectedSemester, setSelectedSemester] = useState('')
   const [semesterInfo, setSemesterInfo] = useState(null)
   const [selectedClass, setSelectedClass] = useState(null)
+  const [isSyllabusPreviewOpen, setIsSyllabusPreviewOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState(today)
   const [calendarMonthDate, setCalendarMonthDate] = useState(today)
 
@@ -77,7 +87,7 @@ function StudentSchedulePage() {
         setSemesterInfo(payload?.schedule?.semesterInfo || null)
       } catch (requestError) {
         const backendMessage = requestError.response?.data?.message
-        setError(backendMessage || 'Không tải được lịch học cá nhân.')
+        setError(backendMessage || loadingErrorLabel)
         setClasses([])
         setAvailableSemesters([])
         setSemesterInfo(null)
@@ -87,7 +97,7 @@ function StudentSchedulePage() {
     }
 
     loadSchedule()
-  }, [selectedSemester])
+  }, [loadingErrorLabel, selectedSemester])
 
   const handleSemesterChange = (event) => {
     const nextSemester = String(event.target.value || '')
@@ -176,6 +186,24 @@ function StudentSchedulePage() {
   const selectedSyllabusDownloadUrl = selectedClass?.subject?.syllabus?.filePath
     ? `${API_BASE_URL}${selectedClass.subject.syllabus.filePath}`
     : ''
+  const canPreviewSyllabus = Boolean(selectedSyllabusDownloadUrl)
+
+  const handleCloseClassDetail = () => {
+    setIsSyllabusPreviewOpen(false)
+    setSelectedClass(null)
+  }
+
+  const handleClassRowClick = (item) => {
+    if (isTeacherMode) {
+      onClassSelect?.(item, {
+        viewMode: teacherViewMode,
+        selectedDate: toYmd(selectedDate),
+      })
+      return
+    }
+
+    setSelectedClass(item)
+  }
 
   return (
     <div className="dashboard-content">
@@ -183,12 +211,12 @@ function StudentSchedulePage() {
         {error && <p className="dashboard-error">{error}</p>}
 
         {isLoading ? (
-          <p className="dashboard-loading">Đang tải lịch học...</p>
+          <p className="dashboard-loading">{loadingLabel}</p>
         ) : (
           <>
             <div className="student-schedule-toolbar">
               <div className="student-schedule-semester-controls">
-                <label htmlFor="student-schedule-semester">Học kỳ</label>
+                <label htmlFor="student-schedule-semester">{semesterLabel}</label>
                 <select
                   id="student-schedule-semester"
                   value={selectedSemester}
@@ -205,115 +233,186 @@ function StudentSchedulePage() {
                   ))}
                 </select>
               </div>
+
+              {isTeacherMode && (
+                <div
+                  role="radiogroup"
+                  aria-label="Chọn chế độ hiển thị lịch dạy"
+                  style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}
+                >
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="radio"
+                      name="teacher-schedule-view-mode"
+                      checked={teacherViewMode === 'calendar'}
+                      onChange={() => setTeacherViewMode('calendar')}
+                    />
+                    Lịch
+                  </label>
+
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                    <input
+                      type="radio"
+                      name="teacher-schedule-view-mode"
+                      checked={teacherViewMode === 'detail'}
+                      onChange={() => setTeacherViewMode('detail')}
+                    />
+                    Chi tiết
+                  </label>
+                </div>
+              )}
             </div>
 
-            <div className="student-schedule-layout">
-              <section className="student-calendar-card" aria-label="Lịch tháng">
-              <div className="student-calendar-header">
-                <button type="button" className="student-calendar-nav" onClick={goToPreviousMonth}>
-                  ‹
-                </button>
-                <strong>{monthTitle}</strong>
-                <button type="button" className="student-calendar-nav" onClick={goToNextMonth}>
-                  ›
-                </button>
-              </div>
-
-              <button type="button" className="student-calendar-today" onClick={goToToday}>
-                Hôm nay
-              </button>
-
-              <div className="student-calendar-weekdays">
-                {WEEKDAY_LABELS.map((label) => (
-                  <span key={label}>{label}</span>
-                ))}
-              </div>
-
-              <div className="student-calendar-grid">
-                {calendarCells.map(({ date, isCurrentMonth }) => {
-                  const cellDateKey = toYmd(date)
-                  const isSelected = toYmd(selectedDate) === cellDateKey
-                  const isToday = toYmd(today) === cellDateKey
-                  const hasClass = isDateWithinSemester(date) && classDaySet.has(toClassDayOfWeek(date))
-
-                  return (
-                    <button
-                      key={cellDateKey}
-                      type="button"
-                      className={[
-                        'student-calendar-day',
-                        isCurrentMonth ? '' : 'is-outside',
-                        isSelected ? 'is-selected' : '',
-                        isToday ? 'is-today' : '',
-                      ].join(' ')}
-                      onClick={() => {
-                        setSelectedDate(date)
-                        if (!isCurrentMonth) {
-                          setCalendarMonthDate(new Date(date.getFullYear(), date.getMonth(), 1))
-                        }
-                      }}
-                    >
-                      <span>{date.getDate()}</span>
-                      {hasClass && <span className="student-calendar-dot" aria-hidden="true" />}
-                    </button>
-                  )
-                })}
-              </div>
-              </section>
-
-              <section className="student-schedule-list-card" aria-label="Danh sách tiết học theo ngày">
+            {isTeacherMode && teacherViewMode === 'detail' ? (
+              <section className="student-schedule-list-card" aria-label="Danh sách lớp dạy trong kỳ">
                 <div className="student-schedule-list-header">
-                  <h3>Lớp học ngày {selectedDateText}</h3>
+                  <h3>Chi tiết các lớp dạy trong kỳ</h3>
                 </div>
 
                 <div className="student-table-wrap">
                   <table className="student-table">
                     <thead>
                       <tr>
-                        <th>Lớp học</th>
+                        <th>Lớp dạy</th>
+                        <th>Thứ</th>
                         <th>Thời gian</th>
                         <th>Địa điểm</th>
-                        <th>Giảng viên</th>
+                        <th>Sĩ số</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {classesByDay.length ? (
-                        classesByDay.map((item) => (
+                      {classes.length ? (
+                        classes.map((item) => (
                           <tr
                             key={item._id}
                             className="curriculum-subject-row"
-                            onClick={() => setSelectedClass(item)}
+                            onClick={() => handleClassRowClick(item)}
                           >
-                            <td>
-                              {item.classCode} - {item.subject?.name || ''} - {item.subject?.subjectCode || ''}
-                            </td>
-                            <td>
-                              {item.startTime || '--:--'} - {item.endTime || '--:--'}
-                            </td>
+                            <td>{item.classCode} - {item.subject?.name || ''} - {item.subject?.subjectCode || ''}</td>
+                            <td>{Number(item.dayOfWeek) || '-'}</td>
+                            <td>{item.startTime || '--:--'} - {item.endTime || '--:--'}</td>
                             <td>{item.room || 'Chưa cập nhật'}</td>
-                            <td>{item.teacher?.fullName || 'Chưa cập nhật'}</td>
+                            <td>{Number(item.studentCount) || 0}</td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan="4" className="table-empty">Không có tiết học.</td>
+                          <td colSpan="5" className="table-empty">Không có lớp dạy trong kỳ này.</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </section>
-            </div>
+            ) : (
+              <div className="student-schedule-layout">
+                <section className="student-calendar-card" aria-label="Lịch tháng">
+                <div className="student-calendar-header">
+                  <button type="button" className="student-calendar-nav" onClick={goToPreviousMonth}>
+                    ‹
+                  </button>
+                  <strong>{monthTitle}</strong>
+                  <button type="button" className="student-calendar-nav" onClick={goToNextMonth}>
+                    ›
+                  </button>
+                </div>
+
+                <button type="button" className="student-calendar-today" onClick={goToToday}>
+                  Hôm nay
+                </button>
+
+                <div className="student-calendar-weekdays">
+                  {WEEKDAY_LABELS.map((label) => (
+                    <span key={label}>{label}</span>
+                  ))}
+                </div>
+
+                <div className="student-calendar-grid">
+                  {calendarCells.map(({ date, isCurrentMonth }) => {
+                    const cellDateKey = toYmd(date)
+                    const isSelected = toYmd(selectedDate) === cellDateKey
+                    const isToday = toYmd(today) === cellDateKey
+                    const hasClass = isDateWithinSemester(date) && classDaySet.has(toClassDayOfWeek(date))
+
+                    return (
+                      <button
+                        key={cellDateKey}
+                        type="button"
+                        className={[
+                          'student-calendar-day',
+                          isCurrentMonth ? '' : 'is-outside',
+                          isSelected ? 'is-selected' : '',
+                          isToday ? 'is-today' : '',
+                        ].join(' ')}
+                        onClick={() => {
+                          setSelectedDate(date)
+                          if (!isCurrentMonth) {
+                            setCalendarMonthDate(new Date(date.getFullYear(), date.getMonth(), 1))
+                          }
+                        }}
+                      >
+                        <span>{date.getDate()}</span>
+                        {hasClass && <span className="student-calendar-dot" aria-hidden="true" />}
+                      </button>
+                    )
+                  })}
+                </div>
+                </section>
+
+                <section className="student-schedule-list-card" aria-label={listAriaLabel}>
+                  <div className="student-schedule-list-header">
+                    <h3>{listTitlePrefix} {selectedDateText}</h3>
+                  </div>
+
+                  <div className="student-table-wrap">
+                    <table className="student-table">
+                      <thead>
+                        <tr>
+                          <th>{classColumnLabel}</th>
+                          <th>Thời gian</th>
+                          <th>Địa điểm</th>
+                          <th>{isTeacherMode ? 'Sĩ số' : 'Giảng viên'}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {classesByDay.length ? (
+                          classesByDay.map((item) => (
+                            <tr
+                              key={item._id}
+                              className="curriculum-subject-row"
+                              onClick={() => handleClassRowClick(item)}
+                            >
+                              <td>
+                                {item.classCode} - {item.subject?.name || ''} - {item.subject?.subjectCode || ''}
+                              </td>
+                              <td>
+                                {item.startTime || '--:--'} - {item.endTime || '--:--'}
+                              </td>
+                              <td>{item.room || 'Chưa cập nhật'}</td>
+                              <td>{isTeacherMode ? (Number(item.studentCount) || 0) : (item.teacher?.fullName || 'Chưa cập nhật')}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="table-empty">Không có tiết học.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
+            )}
           </>
         )}
       </div>
 
-      {selectedClass && (
+      {selectedClass && canOpenClassDetail && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal-card">
             <div className="modal-header">
-              <h3>Chi tiết môn học</h3>
-              <button type="button" className="modal-close" onClick={() => setSelectedClass(null)}>×</button>
+              <h3>Chi tiết lớp học</h3>
+              <button type="button" className="modal-close" onClick={handleCloseClassDetail}>×</button>
             </div>
 
             <form className="student-form" onSubmit={(event) => event.preventDefault()} noValidate>
@@ -365,14 +464,13 @@ function StudentSchedulePage() {
                   <div className="subject-syllabus-card">
                     <p className="subject-syllabus-name">{selectedClass.subject.syllabus.fileName}</p>
                     <div className="subject-syllabus-actions">
-                      <a
+                      <button
+                        type="button"
                         className="table-button"
-                        href={selectedSyllabusDownloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => setIsSyllabusPreviewOpen(true)}
                       >
                         Xem đề cương
-                      </a>
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -382,9 +480,27 @@ function StudentSchedulePage() {
             </form>
 
             <div className="modal-actions full-width">
-              <button type="button" className="ghost" onClick={() => setSelectedClass(null)}>
+              <button type="button" className="ghost" onClick={handleCloseClassDetail}>
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedClass && canOpenClassDetail && canPreviewSyllabus && isSyllabusPreviewOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card syllabus-preview-modal">
+            <div className="modal-header">
+              <h3>Xem đề cương môn học</h3>
+              <button type="button" className="modal-close" onClick={() => setIsSyllabusPreviewOpen(false)}>×</button>
+            </div>
+
+            <div className="subject-syllabus-preview">
+              <iframe
+                src={selectedSyllabusDownloadUrl}
+                title="Xem trước đề cương môn học"
+              />
             </div>
           </div>
         </div>

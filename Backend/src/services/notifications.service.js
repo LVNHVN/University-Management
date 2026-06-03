@@ -15,10 +15,10 @@ const mapTargetRolesToValue = (targetRoles = []) => {
   return '';
 };
 
-const createNotification = async ({ title, content, targetRoles, createdBy }) => {
+const createNotification = async ({ title, content, targetRoles, createdBy, recipientUserId }) => {
   const targetRole = mapTargetRolesToValue(targetRoles);
 
-  if (!targetRole) {
+  if (!targetRole && !recipientUserId) {
     const error = new Error('Vui lòng chọn ít nhất một đối tượng nhận thông báo.');
     error.status = 400;
     throw error;
@@ -27,8 +27,9 @@ const createNotification = async ({ title, content, targetRoles, createdBy }) =>
   const notification = await Notification.create({
     title,
     content,
-    targetRole,
+    targetRole: targetRole || 'student',
     createdBy,
+    ...(recipientUserId ? { recipientUserId } : {}),
     readBy: [],
   });
 
@@ -48,7 +49,15 @@ const getNotificationsForUser = async ({ userId, role }) => {
     return { unreadCount: 0, notifications: [] };
   }
 
-  const notifications = await Notification.find({ targetRole: { $in: ['all', role] } })
+  const notifications = await Notification.find({
+    $or: [
+      { recipientUserId: userId },
+      {
+        recipientUserId: { $exists: false },
+        targetRole: { $in: ['all', role] },
+      },
+    ],
+  })
     .sort({ createdAt: -1, _id: -1 })
     .limit(100)
     .lean();

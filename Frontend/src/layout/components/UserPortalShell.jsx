@@ -7,6 +7,8 @@ import ChangePasswordPage from '../../features/auth/components/ChangePasswordPag
 import { fetchMyNotifications, markNotificationAsRead } from '../../features/notifications/services/notificationService'
 import StudentCurriculumPage from '../../features/curriculum/components/StudentCurriculumPage'
 import StudentSchedulePage from '../../features/schedule/components/StudentSchedulePage'
+import TeacherSchedulePage from '../../features/schedule/components/TeacherSchedulePage'
+import StudentGradesPage from '../../features/grades/components/StudentGradesPage'
 
 function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogout, recaptchaSiteKey }) {
   const {
@@ -26,8 +28,9 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
   const [notifications, setNotifications] = useState([])
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0)
   const [selectedNotification, setSelectedNotification] = useState(null)
-  const [isCurriculumOpen, setIsCurriculumOpen] = useState(true)
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false)
+  const [isCurriculumOpen, setIsCurriculumOpen] = useState(false)
+  const [isScheduleOpen, setIsScheduleOpen] = useState(currentRole === 'student' || currentRole === 'teacher')
+  const [isGradesOpen, setIsGradesOpen] = useState(false)
 
   const loadNotifications = useCallback(async () => {
     if (currentRole !== 'teacher' && currentRole !== 'student') {
@@ -67,6 +70,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     setIsChangePasswordOpen(false)
     setIsCurriculumOpen(false)
     setIsScheduleOpen(false)
+    setIsGradesOpen(false)
     setIsProfileOpen(true)
     if (profile) return
     setIsProfileLoading(true)
@@ -85,6 +89,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     closeNotification()
     setIsCurriculumOpen(false)
     setIsScheduleOpen(false)
+    setIsGradesOpen(false)
     setIsProfileOpen(false)
     setIsChangePasswordOpen(true)
   }, [closeNotification, closeUserMenu])
@@ -96,6 +101,17 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     setIsChangePasswordOpen(false)
     setIsCurriculumOpen(false)
     setIsScheduleOpen(true)
+    setIsGradesOpen(false)
+  }, [closeNotification, closeUserMenu])
+
+  const handleOpenGrades = useCallback(() => {
+    closeUserMenu()
+    closeNotification()
+    setIsProfileOpen(false)
+    setIsChangePasswordOpen(false)
+    setIsCurriculumOpen(false)
+    setIsScheduleOpen(false)
+    setIsGradesOpen(true)
   }, [closeNotification, closeUserMenu])
 
   const handleOpenCurriculum = useCallback(() => {
@@ -105,6 +121,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     setIsChangePasswordOpen(false)
     setIsCurriculumOpen(true)
     setIsScheduleOpen(false)
+    setIsGradesOpen(false)
   }, [closeNotification, closeUserMenu])
 
   const handleCloseChangePassword = useCallback(() => {
@@ -155,15 +172,25 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
         showPersonalInfo
         onPersonalInfo={handleOpenProfile}
         showScheduleButton={currentRole === 'student'}
+        scheduleButtonLabel="Thời khóa biểu"
         onOpenSchedule={handleOpenSchedule}
+        showGradesButton={currentRole === 'student'}
+        gradesButtonLabel="Bảng điểm"
+        onOpenGrades={handleOpenGrades}
         showCurriculumButton={currentRole === 'student'}
         onOpenCurriculum={handleOpenCurriculum}
       />
       {currentRole === 'student' && isScheduleOpen && !isProfileOpen && !isChangePasswordOpen && (
         <StudentSchedulePage />
       )}
+      {currentRole === 'teacher' && isScheduleOpen && !isProfileOpen && !isChangePasswordOpen && (
+        <TeacherSchedulePage />
+      )}
       {currentRole === 'student' && isCurriculumOpen && !isProfileOpen && !isChangePasswordOpen && (
         <StudentCurriculumPage />
+      )}
+      {currentRole === 'student' && isGradesOpen && !isProfileOpen && !isChangePasswordOpen && (
+        <StudentGradesPage />
       )}
       {isChangePasswordOpen && (
         <ChangePasswordPage

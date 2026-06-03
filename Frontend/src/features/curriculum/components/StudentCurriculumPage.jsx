@@ -15,6 +15,7 @@ function StudentCurriculumPage() {
   const [curriculum, setCurriculum] = useState(null)
   const [filters, setFilters] = useState(INITIAL_FILTERS)
   const [selectedSubject, setSelectedSubject] = useState(null)
+  const [isSyllabusPreviewOpen, setIsSyllabusPreviewOpen] = useState(false)
 
   useEffect(() => {
     const loadMyCurriculum = async () => {
@@ -86,6 +87,12 @@ function StudentCurriculumPage() {
   const selectedSyllabusDownloadUrl = selectedSubject?.syllabus?.filePath
     ? `${API_BASE_URL}${selectedSubject.syllabus.filePath}`
     : ''
+  const canPreviewSyllabus = Boolean(selectedSyllabusDownloadUrl)
+
+  const handleCloseSubjectDetail = () => {
+    setIsSyllabusPreviewOpen(false)
+    setSelectedSubject(null)
+  }
 
   return (
     <div className="dashboard-content">
@@ -176,7 +183,7 @@ function StudentCurriculumPage() {
           <div className="modal-card">
             <div className="modal-header">
               <h3>Chi tiết môn học</h3>
-              <button type="button" className="modal-close" onClick={() => setSelectedSubject(null)}>×</button>
+              <button type="button" className="modal-close" onClick={handleCloseSubjectDetail}>×</button>
             </div>
 
             <form className="student-form" onSubmit={(event) => event.preventDefault()} noValidate>
@@ -228,14 +235,13 @@ function StudentCurriculumPage() {
                   <div className="subject-syllabus-card">
                     <p className="subject-syllabus-name">{selectedSubject.syllabus.fileName}</p>
                     <div className="subject-syllabus-actions">
-                      <a
+                      <button
+                        type="button"
                         className="table-button"
-                        href={selectedSyllabusDownloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => setIsSyllabusPreviewOpen(true)}
                       >
                         Xem đề cương
-                      </a>
+                      </button>
                     </div>
                   </div>
                 ) : (
@@ -245,9 +251,27 @@ function StudentCurriculumPage() {
             </form>
 
             <div className="modal-actions full-width">
-              <button type="button" className="ghost" onClick={() => setSelectedSubject(null)}>
+              <button type="button" className="ghost" onClick={handleCloseSubjectDetail}>
                 Đóng
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedSubject && canPreviewSyllabus && isSyllabusPreviewOpen && (
+        <div className="modal-overlay" role="dialog" aria-modal="true">
+          <div className="modal-card syllabus-preview-modal">
+            <div className="modal-header">
+              <h3>Xem đề cương môn học</h3>
+              <button type="button" className="modal-close" onClick={() => setIsSyllabusPreviewOpen(false)}>×</button>
+            </div>
+
+            <div className="subject-syllabus-preview">
+              <iframe
+                src={selectedSyllabusDownloadUrl}
+                title="Xem trước đề cương môn học"
+              />
             </div>
           </div>
         </div>
