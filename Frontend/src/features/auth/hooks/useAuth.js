@@ -134,6 +134,7 @@ export const useAuth = ({ onLoginSuccess } = {}) => {
     }
 
     localStorage.removeItem('token')
+    window.history.replaceState(null, '', window.location.pathname)
     setCurrentRole('')
     setCurrentUserName('')
     setCurrentFullName('')

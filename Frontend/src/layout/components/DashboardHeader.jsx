@@ -32,7 +32,7 @@ function DashboardHeader({
             <path d="M12 3 2 8l10 5 8-4v6h2V8L12 3Zm-6 9v4.5C6 18.99 8.69 21 12 21s6-2.01 6-4.5V12l-6 3-6-3Z" />
           </svg>
         </div>
-        <div className="university-name">Trường Đại học ABC</div>
+        <div className="university-name">Hoàng University</div>
       </div>
 
       <div className="header-actions">
