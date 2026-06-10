@@ -9,6 +9,7 @@ import StudentCurriculumPage from '../../features/curriculum/components/StudentC
 import StudentSchedulePage from '../../features/schedule/components/StudentSchedulePage'
 import TeacherSchedulePage from '../../features/schedule/components/TeacherSchedulePage'
 import StudentGradesPage from '../../features/grades/components/StudentGradesPage'
+import StudentTuitionPage from '../../features/tuition/components/StudentTuitionPage'
 
 const PORTAL_HASH_PREFIX = '#/portal/'
 
@@ -21,7 +22,7 @@ const normalizePortalView = (view, role) => {
     return 'schedule'
   }
 
-  if (role === 'student' && (view === 'curriculum' || view === 'grades')) {
+  if (role === 'student' && (view === 'curriculum' || view === 'grades' || view === 'tuition')) {
     return view
   }
 
@@ -64,6 +65,7 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
   const isCurriculumOpen = portalView === 'curriculum'
   const isScheduleOpen = portalView === 'schedule'
   const isGradesOpen = portalView === 'grades'
+  const isTuitionOpen = portalView === 'tuition'
 
   useEffect(() => {
     setPortalView((prev) => normalizePortalView(prev, currentRole))
@@ -168,6 +170,12 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
     setPortalView('curriculum')
   }, [closeNotification, closeUserMenu])
 
+  const handleOpenTuition = useCallback(() => {
+    closeUserMenu()
+    closeNotification()
+    setPortalView('tuition')
+  }, [closeNotification, closeUserMenu])
+
   const handleCloseChangePassword = useCallback(() => {
     setPortalView('schedule')
   }, [])
@@ -223,6 +231,9 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
         onOpenGrades={handleOpenGrades}
         showCurriculumButton={currentRole === 'student'}
         onOpenCurriculum={handleOpenCurriculum}
+        showTuitionButton={currentRole === 'student'}
+        tuitionButtonLabel="Học phí"
+        onOpenTuition={handleOpenTuition}
       />
       {currentRole === 'student' && isScheduleOpen && !isProfileOpen && !isChangePasswordOpen && (
         <StudentSchedulePage />
@@ -235,6 +246,9 @@ function UserPortalShell({ currentRole, currentUserName, currentFullName, onLogo
       )}
       {currentRole === 'student' && isGradesOpen && !isProfileOpen && !isChangePasswordOpen && (
         <StudentGradesPage />
+      )}
+      {currentRole === 'student' && isTuitionOpen && !isProfileOpen && !isChangePasswordOpen && (
+        <StudentTuitionPage />
       )}
       {isChangePasswordOpen && (
         <ChangePasswordPage

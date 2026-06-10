@@ -17,6 +17,7 @@
     "seed:full-recovery": "npm run seed:sample-data && npm run seed:curriculums && npm run seed:subjects && npm run link:curriculums && npm run reseed:classes",
     "link:curriculums": "node scripts/link-students-to-curriculums.js",
     "reseed:classes": "node scripts/reseed-classes.js",
+    "sync:tuition": "node scripts/sync-tuition-data.js",
     "migrate:student-major": "node scripts/migrate-student-major.js",
     "migrate:semester-refs": "node scripts/migrate-semester-references.js",
     "check:db": "node scripts/check-database-state.js"

@@ -9,6 +9,7 @@ const classRoutes = require('./class.routes');
 const semesterRoutes = require('./semester.routes');
 const accountsRoutes = require('./accounts.routes');
 const notificationsRoutes = require('./notifications.routes');
+const tuitionRoutes = require('./tuition.routes');
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/classes', classRoutes);
 router.use('/semesters', semesterRoutes);
 router.use('/users', accountsRoutes);
 router.use('/notifications', notificationsRoutes);
+router.use('/tuition', tuitionRoutes);
 
 module.exports = router;

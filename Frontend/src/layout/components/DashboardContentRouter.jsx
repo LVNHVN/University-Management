@@ -6,6 +6,7 @@ import SemesterManagement from '../../features/semesters/components/SemesterMana
 import CurriculumManagement from '../../features/curriculum/components/CurriculumManagement'
 import ClassManagement from '../../features/classes/components/ClassManagement'
 import NotificationManagement from '../../features/notifications/components/NotificationManagement'
+import TuitionManagement from '../../features/tuition/components/TuitionManagement'
 import { NAV_ITEMS } from '../../shared/constants/navigation'
 
 function DashboardContentRouter({ activeView, dashboardRefreshVersion, onStudentChanged, onTeacherChanged }) {
@@ -35,6 +36,10 @@ function DashboardContentRouter({ activeView, dashboardRefreshVersion, onStudent
 
   if (activeView === 'classes') {
     return <ClassManagement />
+  }
+
+  if (activeView === 'tuition') {
+    return <TuitionManagement />
   }
 
   if (activeView === 'notifications') {

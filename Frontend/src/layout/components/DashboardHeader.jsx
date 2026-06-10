@@ -23,6 +23,9 @@ function DashboardHeader({
   onOpenGrades,
   showCurriculumButton = false,
   onOpenCurriculum,
+  showTuitionButton = false,
+  tuitionButtonLabel = 'Học phí',
+  onOpenTuition,
 }) {
   return (
     <header className="dashboard-header">
@@ -51,6 +54,12 @@ function DashboardHeader({
         {showCurriculumButton && (
           <button type="button" className="header-action-button" onClick={onOpenCurriculum}>
             Xem chương trình đào tạo
+          </button>
+        )}
+
+        {showTuitionButton && (
+          <button type="button" className="header-action-button" onClick={onOpenTuition}>
+            {tuitionButtonLabel}
           </button>
         )}
 

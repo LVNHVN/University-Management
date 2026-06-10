@@ -45,10 +45,21 @@ const buildCalendarCells = (viewDate) => {
   return cells
 }
 
-function StudentSchedulePage({ mode = 'student', onClassSelect }) {
+function StudentSchedulePage({
+  mode = 'student',
+  onClassSelect,
+  teacherViewMode: teacherViewModeProp,
+  onTeacherViewModeChange,
+}) {
   const isTeacherMode = mode === 'teacher'
   const canOpenClassDetail = !isTeacherMode
-  const [teacherViewMode, setTeacherViewMode] = useState('calendar')
+  const [teacherViewModeState, setTeacherViewModeState] = useState('calendar')
+  const teacherViewMode = isTeacherMode
+    ? (teacherViewModeProp === 'detail' ? 'detail' : 'calendar')
+    : teacherViewModeState
+  const setTeacherViewMode = isTeacherMode && typeof onTeacherViewModeChange === 'function'
+    ? onTeacherViewModeChange
+    : setTeacherViewModeState
   const loadingLabel = isTeacherMode ? 'Đang tải lịch dạy...' : 'Đang tải lịch học...'
   const loadingErrorLabel = isTeacherMode ? 'Không tải được lịch dạy cá nhân.' : 'Không tải được lịch học cá nhân.'
   const semesterLabel = isTeacherMode ? 'Lịch dạy theo học kỳ' : 'Học kỳ'
@@ -234,78 +245,53 @@ function StudentSchedulePage({ mode = 'student', onClassSelect }) {
                 </select>
               </div>
 
-              {isTeacherMode && (
-                <div
-                  role="radiogroup"
-                  aria-label="Chọn chế độ hiển thị lịch dạy"
-                  style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}
-                >
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <input
-                      type="radio"
-                      name="teacher-schedule-view-mode"
-                      checked={teacherViewMode === 'calendar'}
-                      onChange={() => setTeacherViewMode('calendar')}
-                    />
-                    Lịch
-                  </label>
-
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                    <input
-                      type="radio"
-                      name="teacher-schedule-view-mode"
-                      checked={teacherViewMode === 'detail'}
-                      onChange={() => setTeacherViewMode('detail')}
-                    />
-                    Chi tiết
-                  </label>
-                </div>
-              )}
             </div>
 
-            {isTeacherMode && teacherViewMode === 'detail' ? (
-              <section className="student-schedule-list-card" aria-label="Danh sách lớp dạy trong kỳ">
-                <div className="student-schedule-list-header">
-                  <h3>Chi tiết các lớp dạy trong kỳ</h3>
-                </div>
+            {isTeacherMode ? (
+              <div className="teacher-schedule-content">
+                {teacherViewMode === 'detail' ? (
+                  <section className="student-schedule-list-card" aria-label="Danh sách lớp dạy trong kỳ">
+                    <div className="student-schedule-list-header">
+                      <h3>Chi tiết các lớp dạy trong kỳ</h3>
+                    </div>
 
-                <div className="student-table-wrap">
-                  <table className="student-table">
-                    <thead>
-                      <tr>
-                        <th>Lớp dạy</th>
-                        <th>Thứ</th>
-                        <th>Thời gian</th>
-                        <th>Địa điểm</th>
-                        <th>Sĩ số</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {classes.length ? (
-                        classes.map((item) => (
-                          <tr
-                            key={item._id}
-                            className="curriculum-subject-row"
-                            onClick={() => handleClassRowClick(item)}
-                          >
-                            <td>{item.classCode} - {item.subject?.name || ''} - {item.subject?.subjectCode || ''}</td>
-                            <td>{Number(item.dayOfWeek) || '-'}</td>
-                            <td>{item.startTime || '--:--'} - {item.endTime || '--:--'}</td>
-                            <td>{item.room || 'Chưa cập nhật'}</td>
-                            <td>{Number(item.studentCount) || 0}</td>
+                    <div className="student-table-wrap">
+                      <table className="student-table">
+                        <thead>
+                          <tr>
+                            <th>Lớp dạy</th>
+                            <th>Thứ</th>
+                            <th>Thời gian</th>
+                            <th>Địa điểm</th>
+                            <th>Sĩ số</th>
                           </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td colSpan="5" className="table-empty">Không có lớp dạy trong kỳ này.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            ) : (
-              <div className="student-schedule-layout">
+                        </thead>
+                        <tbody>
+                          {classes.length ? (
+                            classes.map((item) => (
+                              <tr
+                                key={item._id}
+                                className="curriculum-subject-row"
+                                onClick={() => handleClassRowClick(item)}
+                              >
+                                <td>{item.classCode} - {item.subject?.name || ''} - {item.subject?.subjectCode || ''}</td>
+                                <td>{Number(item.dayOfWeek) || '-'}</td>
+                                <td>{item.startTime || '--:--'} - {item.endTime || '--:--'}</td>
+                                <td>{item.room || 'Chưa cập nhật'}</td>
+                                <td>{Number(item.studentCount) || 0}</td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="5" className="table-empty">Không có lớp dạy trong kỳ này.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                ) : (
+                  <div className="student-schedule-layout">
                 <section className="student-calendar-card" aria-label="Lịch tháng">
                 <div className="student-calendar-header">
                   <button type="button" className="student-calendar-nav" onClick={goToPreviousMonth}>
@@ -390,6 +376,106 @@ function StudentSchedulePage({ mode = 'student', onClassSelect }) {
                               </td>
                               <td>{item.room || 'Chưa cập nhật'}</td>
                               <td>{isTeacherMode ? (Number(item.studentCount) || 0) : (item.teacher?.fullName || 'Chưa cập nhật')}</td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan="4" className="table-empty">Không có tiết học.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="student-schedule-layout">
+                <section className="student-calendar-card" aria-label="Lịch tháng">
+                <div className="student-calendar-header">
+                  <button type="button" className="student-calendar-nav" onClick={goToPreviousMonth}>
+                    ‹
+                  </button>
+                  <strong>{monthTitle}</strong>
+                  <button type="button" className="student-calendar-nav" onClick={goToNextMonth}>
+                    ›
+                  </button>
+                </div>
+
+                <button type="button" className="student-calendar-today" onClick={goToToday}>
+                  Hôm nay
+                </button>
+
+                <div className="student-calendar-weekdays">
+                  {WEEKDAY_LABELS.map((label) => (
+                    <span key={label}>{label}</span>
+                  ))}
+                </div>
+
+                <div className="student-calendar-grid">
+                  {calendarCells.map(({ date, isCurrentMonth }) => {
+                    const cellDateKey = toYmd(date)
+                    const isSelected = toYmd(selectedDate) === cellDateKey
+                    const isToday = toYmd(today) === cellDateKey
+                    const hasClass = isDateWithinSemester(date) && classDaySet.has(toClassDayOfWeek(date))
+
+                    return (
+                      <button
+                        key={cellDateKey}
+                        type="button"
+                        className={[
+                          'student-calendar-day',
+                          isCurrentMonth ? '' : 'is-outside',
+                          isSelected ? 'is-selected' : '',
+                          isToday ? 'is-today' : '',
+                        ].join(' ')}
+                        onClick={() => {
+                          setSelectedDate(date)
+                          if (!isCurrentMonth) {
+                            setCalendarMonthDate(new Date(date.getFullYear(), date.getMonth(), 1))
+                          }
+                        }}
+                      >
+                        <span>{date.getDate()}</span>
+                        {hasClass && <span className="student-calendar-dot" aria-hidden="true" />}
+                      </button>
+                    )
+                  })}
+                </div>
+                </section>
+
+                <section className="student-schedule-list-card" aria-label={listAriaLabel}>
+                  <div className="student-schedule-list-header">
+                    <h3>{listTitlePrefix} {selectedDateText}</h3>
+                  </div>
+
+                  <div className="student-table-wrap">
+                    <table className="student-table">
+                      <thead>
+                        <tr>
+                          <th>{classColumnLabel}</th>
+                          <th>Thời gian</th>
+                          <th>Địa điểm</th>
+                          <th>Giảng viên</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {classesByDay.length ? (
+                          classesByDay.map((item) => (
+                            <tr
+                              key={item._id}
+                              className="curriculum-subject-row"
+                              onClick={() => handleClassRowClick(item)}
+                            >
+                              <td>
+                                {item.classCode} - {item.subject?.name || ''} - {item.subject?.subjectCode || ''}
+                              </td>
+                              <td>
+                                {item.startTime || '--:--'} - {item.endTime || '--:--'}
+                              </td>
+                              <td>{item.room || 'Chưa cập nhật'}</td>
+                              <td>{item.teacher?.fullName || 'Chưa cập nhật'}</td>
                             </tr>
                           ))
                         ) : (
